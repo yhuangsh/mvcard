@@ -1,0 +1,16 @@
+{application, baomi,
+ [
+  {description, ""},
+  {vsn, "1"},
+  {modules, [baomi, baomi_sup, baomi_server]},
+  {registered, []},
+  {applications, [
+                  kernel,
+                  stdlib
+                 ]},
+  {mod, { baomi_app, []}},
+  {env, [
+	{start_type, recover},
+	{key_file, "baomi.key"}
+	]}
+ ]}.

@@ -1,0 +1,10 @@
+.eunit
+ebin
+deps
+priv
+*.o
+*.beam
+*.plt
+rel/files
+rel/*.vbox
+Thumbs.db
