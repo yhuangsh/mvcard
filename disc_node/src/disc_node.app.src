@@ -1,0 +1,13 @@
+{application, disc_node,
+ [
+  {description, "Turn node's mnesia database into disc-based"},
+  {vsn, "1"},
+  {registered, []},
+  {applications, [
+                  kernel,
+                  stdlib,
+		  mnesia
+                 ]},
+  {mod, { disc_node_app, []}},
+  {env, []}
+ ]}.
