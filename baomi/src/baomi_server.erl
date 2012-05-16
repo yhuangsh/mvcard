@@ -3,7 +3,7 @@
 
 -behaviour(gen_server).
 
--include("baomi_def.hrl").
+-include("../../include/defs.hrl").
 
 -include_lib("public_key/include/public_key.hrl"). 
 
@@ -12,7 +12,7 @@
 -endif.
 
 %% API
--export([start_link/2, start_link/3, stop/0]).
+-export([start_link/0, start_link/1, start_link/2, start_link/3, stop/0]).
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
@@ -20,8 +20,9 @@
 
 -define(SERVER, ?MODULE). 
 
--define(KEYPOOL_TABLE, nihao_key_pool).
+-define(KEYPOOL_TABLE, baomi_key_pool).
 
+-define(DEFAULT_KEYFILE, "baomi.key").
 -define(DEFAULT_CAPACITY, 1*?MILLION).
 -define(DEFAULT_TIMEOUT, (0*?DAYS + 12*?HOURS + 0*?MINUTES + 0*?SECONDS)).
 
@@ -45,11 +46,26 @@
 %%% API
 %%%===================================================================
 
-start_link(StartType, KeyFile) ->
-    start_link(StartType, KeyFile, []).
+start_link() ->
+    Env = application:get_all_env(),
+    KeyFile = proplists:get_value(keyfile, Env, "testkey0"),
+    Capacity = proplists:get_value(capacity, Env, 1*?MILLION),
+    Timeout = proplists:get_value(timeout, Env, 2*?HOURS),
+    start_link(KeyFile, Capacity, Timeout).
 
-start_link(StartType, KeyFile, Options) ->
-    gen_server:start_link({local, ?SERVER}, ?SERVER, [StartType, KeyFile, Options], []).
+start_link(KeyFile) ->
+    Env = application:get_all_env(),
+    Capacity = proplists:get_value(capacity, Env, 1*?MILLION),
+    Timeout = proplists:get_value(timeout, Env, 2*?HOURS),
+    start_link(KeyFile, Capacity, Timeout).
+
+start_link(KeyFile, Capacity) ->
+    Env = application:get_all_env(),
+    Timeout = proplists:get_value(timeout, Env, 2*?HOURS),
+    start_link(KeyFile, Capacity, Timeout).
+
+start_link(KeyFile, Capacity, Timeout) ->
+    gen_server:start_link({local, ?SERVER}, ?SERVER, [KeyFile, Capacity, Timeout], []).
 
 stop() ->
     gen_server:call(?SERVER, stop).
@@ -58,29 +74,32 @@ stop() ->
 %%% gen_server callbacks
 %%%===================================================================
 
-init([StartType, KeyFile, Options]) ->
-    Capacity = proplists:get_value(capacity, Options, ?DEFAULT_CAPACITY),
-    Timeout = proplists:get_value(timeout, Options, ?DEFAULT_TIMEOUT),
+init([KeyFile, Capacity, Timeout]) ->
+    error_logger:info_msg(io_lib:format("Baomi: { keyfile = ~s, capacity = ~p, timeout = ~p~n", [KeyFile, Capacity, Timeout])),
 
     PrivateKey = get_private_key_from_file(KeyFile),
     PublicKey = #'RSAPublicKey'{modulus = PrivateKey#'RSAPrivateKey'.modulus, 
 				publicExponent = PrivateKey#'RSAPrivateKey'.publicExponent},
-    
-    nihao_util:ensure_mnesia_is_running(),
-    case StartType of
-	recover ->
-	    nihao_util:ensure_mnesia_table_exists(?KEYPOOL_TABLE),
-	    nihao_util:ensure_mnesia_table_structure(?KEYPOOL_TABLE, key);
-	lead ->
-	    nihao_util:ensure_mnesia_no_table_exists(?KEYPOOL_TABLE),
-	    nihao_util:ensure_mnesia_create_table_ok(?KEYPOOL_TABLE, [ {attributes, record_info(fields, key)},
-								       {ram_copies, [node()]},
-								       {record_name, key} ]);
-	join ->
-	    nihao_util:ensure_mnesia_no_table_exists(?KEYPOOL_TABLE),
-	    nihao_util:ensure_mnesia_replication_ok(?KEYPOOL_TABLE, ram_copies);
-	_Else ->
-	    throw({error, "wrong start type"})
+
+    %% if table exists -> check structure -> if table local? -> done
+    %%                                                       -> replicate to local
+    %%                 -> create table locally
+    case lists:member(?KEYPOOL_TABLE, mnesia:system_info(tables)) of
+	true ->
+	    R = record_info(fields, key),
+	    R = mnesia:table_info(?KEYPOOL_TABLE, attributes),
+	    %% if table is local
+	    case lists:member(?KEYPOOL_TABLE, mnesia:system_info(local_tables)) of
+		true ->
+		    ok;
+		false ->
+		    {atomic, ok} = mnesia:add_table_copy(?KEYPOOL_TABLE, node(), ram_copies),
+		    ok = mnesia:wait_for_tables([?KEYPOOL_TABLE], infinity)
+	    end;
+	false ->
+	    {atomic, ok} = mnesia:create_table(?KEYPOOL_TABLE, [{attributes, record_info(fields, key)},
+								{ram_copies, [node()]},
+								{record_name, key}])
     end,
     {ok, #state{public_key = PublicKey, private_key = PrivateKey, capacity = Capacity, timeout = Timeout}}.
 	
@@ -137,7 +156,7 @@ handle_cast(purge_expired_keys, State) ->
     try
 	PurgeOneKey = 
 	    fun(Key, _Acc) ->
-		    case nihao_util:now_in_seconds() >= key_expire_time(Key) of
+		    case now_in_seconds() >= key_expire_time(Key) of
 			true ->
 			    mnesia:delete(?KEYPOOL_TABLE, key_id(Key), write),
 			    _Acc;
@@ -192,12 +211,12 @@ validate_key_blob(KeyBlob) ->
     true = (KeySize =< ?MAXKEYSIZE andalso KeySize >= ?MINKEYSIZE),
     <<Random:?KEYRANDOMSIZE/bytes, Rest2/binary>> = Rest,
     true = (KeySize =< length(binary_to_list(Rest2))),
-    <<KeyValue:KeySize/bytes, _Rest2/binary>> = Rest2,
+    <<KeyValue:KeySize/bytes, _Anything/binary>> = Rest2,
     {Random, KeyValue}.
 	    
 new_key(KeyValue, Timeout) ->
     Id = crypto:rand_bytes(16),
-    ExpireTime = nihao_util:now_in_seconds() + Timeout,
+    ExpireTime = now_in_seconds() + Timeout,
     #key{id = Id, value = KeyValue, expire_time = ExpireTime}.
 
 read_key(KeyId) ->
@@ -206,21 +225,25 @@ read_key(KeyId) ->
     Key.
 
 delete_key_if_expired(Key) ->
-    case nihao_util:now_in_seconds() >= key_expire_time(Key) of
+    case now_in_seconds() >= key_expire_time(Key) of
 	true ->
 	    F = fun() -> mnesia:delete(?KEYPOOL_TABLE, key_id(Key), write) end,
 	    ok = mnesia:transaction(F);
 	false ->
 	    ok
     end.
-    
+
+now_in_seconds() ->
+    Now = calendar:now_to_datetime(now()),
+    calendar:datetime_to_gregorian_seconds(Now).    
+
 %%%===================================================================
 %%% Unit tests
 %%%===================================================================
 
 -ifdef(TEST).
 
--define(KEYFILE, "C:/Users/yonghuan/huang/erlang/nihao/testkey0").
+-define(KEYFILE, "../src/testkey1").
 -define(T(X), {??X, fun X/0}).
 
 all_test_() ->
@@ -246,14 +269,15 @@ all_test_() ->
 
 setup0() ->
     ok = mnesia:start(),
-    {ok, _} = baomi:start_link(lead, ?KEYFILE),
+    ?debugMsg(io_lib:format("pwd =~p", [file:get_cwd()])),
+    {ok, _} = start_link(?KEYFILE),
     ok.
 
 cleanup0() ->
     stop_and_purge().
 
 stop_and_purge() ->
-    ok = baomi:stop(),
+    ok = stop(),
     {atomic, ok} = mnesia:delete_table(?KEYPOOL_TABLE).
 
 test0() ->
@@ -267,21 +291,44 @@ test1() ->
 
 test2() ->
     PrivateKey = get_private_key_from_file(?KEYFILE),
-    true = (m1() =:= public_key:decrypt_private(c1(), PrivateKey)),
-    true = (m2() =:= public_key:decrypt_private(c2(), PrivateKey)),
+    true = (m1() =:= public_key:decrypt_private(c1_1024(), PrivateKey)),
+    true = (m2() =:= public_key:decrypt_private(c2_1024(), PrivateKey)),
     ok.
     
 -define(L(X), integer_list_to_binary(X)).
-c1() -> ?L([-56, 85, 84, 120, -9, -69, 77, 74, 31, -46, 2, -80, -36,
-	    69, 35, 58, 90, -55, 85, -78, -33, 98, -85, 47, 100, -115, 
-	    94, -7, 37, 12, -49, -124, -28, -3, -26, 66, 64, 45, 57, 
-	    -39, 22, -121, -59, -55, 44, 15, -75, 4, -38, 69, -13, 87, 
-	    113, 1, -43, 56, -56, 12, 123, -28, 100, -70, 58, -2]).
-c2() -> ?L([39, -50, -111, -25, -85, -16, -83, 96, 99, -93, -42, 118, 
-	    108, 78, 89, 2, -93, 33, 53, 17, -26, 77, 68, 69, 69, 42, 
-	    28, 30, -83, -92, 83, 115, 127, -89, 74, -40, 122, -116, 
-	    18, -70, 33, -58, 38, -103, 52, -18, -110, -70, 62, 93, 126, 
-	    31, -56, 14, 1, 63, 31, -50, 91, -104, -92, 71, -25, -86]).
+%c1_512() -> ?L([-56, 85, 84, 120, -9, -69, 77, 74, 31, -46, 2, -80, -36,
+%		69, 35, 58, 90, -55, 85, -78, -33, 98, -85, 47, 100, -115, 
+%		94, -7, 37, 12, -49, -124, -28, -3, -26, 66, 64, 45, 57, 
+%		-39, 22, -121, -59, -55, 44, 15, -75, 4, -38, 69, -13, 87, 
+%		113, 1, -43, 56, -56, 12, 123, -28, 100, -70, 58, -2]).
+%c2_512() -> ?L([39, -50, -111, -25, -85, -16, -83, 96, 99, -93, -42, 118, 
+%	    108, 78, 89, 2, -93, 33, 53, 17, -26, 77, 68, 69, 69, 42, 
+%	    28, 30, -83, -92, 83, 115, 127, -89, 74, -40, 122, -116, 
+%	    18, -70, 33, -58, 38, -103, 52, -18, -110, -70, 62, 93, 126, 
+%	    31, -56, 14, 1, 63, 31, -50, 91, -104, -92, 71, -25, -86]).
+
+c1_1024() -> ?L([-112, -106, 35, -33, -33, -14, 35, -59, 114, 91, 25, 89, 2,
+		 101, -49, 18, -124, 103, 17, -47, 16, -39, -65, 27, -126, 
+		 -44, -3, 119, -30, 49, -96, -84, 94, 90, -102, 66, -95, -40,
+		 -74, -108, 116, -119, 8, -112, -26, 9, 68, 91, -44, -78, 73,
+		 69, -82, 120, -43, -95, 51, -45, 114, 127, -71, 66, 28, -88, 
+		 -27, -40, 58, -46, 55, -59, 24, 56, -85, -58, -109, 103, -108,
+		 65, 9, -109, 116, -85, -112, -59, -39, -8, -60, 66, 35, -86,
+		 -43, -42, 15, -42, 126, 105, 98, 15, -22, -59, -60, -23, -15, 
+		 111, 93, -95, 27, -67, 27, -77, -125, 62, 83, -65, -77, 58, 
+		 83, -116, -30, -26, 50, -126, 105, -113, 99, 42, 49, -117]).
+    
+c2_1024() -> ?L([23, 24, -67, -66, -15, 94, -21, 121, -82, 12, -58, 103, -15, 
+		 94, -8, -102, -33, 60, 123, -10, -12, -108, 62, 11, 25, 84, 5, 
+		 -83, 33, 96, -59, -75, -110, 103, 84, 84, 109, 56, -72, -97, 
+		 -14, -78, 9, 26, 3, 106, 103, -5, -117, -124, 105, -48, 55, 
+		 -50, -103, 19, -72, -69, -81, -26, -109, 76, 55, -33, -63, 
+		 -117, -114, -66, 93, -35, 26, 70, 81, -128, 26, -113, -91, 
+		 -47, 111, -56, 33, -113, -28, 70, -84, 67, -56, -17, 108, 
+		 -74, 64, -15, 36, 96, 116, 1, 99, 19, -8, -93, 43, 76, -15, 
+		 51, -83, -40, -4, 14, 26, -26, 56, -40, -10, 46, 66, 98, -98,
+		 82, 106, 3, -103, -91, -54, -25, 23, -73, 64, -84]).
+    
 -undef(L).
 
 m1() -> <<1,2,3,4,5,6,7,8,9,0>>.
@@ -326,7 +373,7 @@ get_public_key_from_server() ->
 
 test5() ->
     stop_and_purge(),
-    {ok, _} = start_link(lead, ?KEYFILE, [{capacity, 10}]),
+    {ok, _} = start_link(?KEYFILE, 10),
     {_, _, EncryptedKeyBlobs, _} = exchange_10_keys(),
     error_logger:tty(false),
     failed = baomi:exchange_key(hd(EncryptedKeyBlobs)),
@@ -335,10 +382,10 @@ test5() ->
 
 test6() ->
     stop_and_purge(),
-    {ok, _} = start_link(lead, ?KEYFILE, [{capacity, 10}]),
+    {ok, _} = start_link(?KEYFILE, 10),
     {_, _, EncryptedKeyBlobs, _} = exchange_10_keys(),
     ok = stop(),
-    {ok, _} = start_link(recover, ?KEYFILE, [{capacity, 11}]),
+    {ok, _} = start_link(?KEYFILE, 11),
     {ok, _, _} = baomi:exchange_key(hd(EncryptedKeyBlobs)),
     error_logger:tty(false),
     failed = baomi:exchange_key(hd(EncryptedKeyBlobs)),
@@ -354,7 +401,7 @@ exchange_10_keys() ->
 
 test7() ->
     stop_and_purge(),
-    {ok, _} = start_link(lead, ?KEYFILE, [{capacity, 10}, {timeout, 1}]),
+    {ok, _} = start_link(?KEYFILE, 10, 1),
     {_, _, _, ExchangeKeyResults} = exchange_10_keys(),
     [{ok, _} = baomi:get_key(K) || {ok, K, _} <- ExchangeKeyResults],
     timer:sleep(2000),
@@ -366,7 +413,7 @@ test7() ->
 
 test8() ->    
     stop_and_purge(),
-    {ok, _} = start_link(lead, ?KEYFILE, [{capacity, 10}, {timeout, 1}]),
+    {ok, _} = start_link(?KEYFILE, 10, 1),
     exchange_10_keys(),
     timer:sleep(2000),
     baomi:purge_expired_keys(),
