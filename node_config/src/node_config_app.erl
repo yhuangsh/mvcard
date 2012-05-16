@@ -1,4 +1,4 @@
--module(disc_node_app).
+-module(node_config_app).
 
 -behaviour(application).
 
@@ -10,7 +10,7 @@
 %% ===================================================================
 
 start(_StartType, _StartArgs) ->
-    disc_node_sup:start_link().
+    node_config_sup:start_link().
 
 stop(_State) ->
     ok.

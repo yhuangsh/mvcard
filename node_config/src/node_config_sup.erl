@@ -1,5 +1,5 @@
 
--module(disc_node_sup).
+-module(node_config_sup).
 
 -behaviour(supervisor).
 
@@ -21,11 +21,11 @@ start_link() ->
 %% ===================================================================
 
 init([]) ->
-    DiscNode = {disc_node, 
-		{disc_node, start, []},
-		permanent,
-		2000,
-		worker,
-		[disc_node]},
-    {ok, { {one_for_all, 0, 1}, [DiscNode]} }.
+    NodeConfig = {node_config, 
+		  {node_config, start, []},
+		  permanent,
+		  5000,
+		  worker,
+		  [node_config]},
+    {ok, { {one_for_one, 5, 10}, [NodeConfig]} }.
 

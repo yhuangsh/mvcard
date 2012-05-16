@@ -1,11 +1,27 @@
--module(disc_node).
+-module(node_config).
 
--export([start/0, run/0]).
+-export([start/0, run/1]).
 
 start() ->
-    {ok, spawn(?MODULE, run, [])}.
+    {ok, spawn(?MODULE, run, [application:get_all_env()])}.
 
-run() ->
+run(Envs) when is_list(Envs) ->
+    SchemaLoc = proplists:get_value(mnesia_schema_location, Envs, current),
+
+    change_mnesia_schema_copy_type(SchemaLoc),
+    ok.
+
+change_mnesia_schema_copy_type(current) -> ok;
+change_mnesia_schema_copy_type(ram) ->
+    ThisNode = node(),
+    RamCopies = mnesia:table_info(schema, ram_copies),
+    true == lists:member(ThisNode, RamCopies) 
+	orelse begin 
+		   error_logger:error_msg("Mnesia schema not in ram"),
+		   init:stop()
+	       end,
+    ok;
+change_mnesia_schema_copy_type(disc) ->
     ThisNode = node(),
     RamCopies = mnesia:table_info(schema, ram_copies),
     DiscCopies = mnesia:table_info(schema, disc_copies),
@@ -27,5 +43,6 @@ run() ->
 		    end
 	    end
     end.
-			
+
     
+			  

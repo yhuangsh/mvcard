@@ -1,0 +1,13 @@
+{application, node_config,
+ [
+  {description, ""},
+  {vsn, "1"},
+  {registered, []},
+  {applications, [
+                  kernel,
+                  stdlib,
+		  mnesia
+		 ]},
+  {mod, { node_config_app, []}},
+  {env, []}
+ ]}.
