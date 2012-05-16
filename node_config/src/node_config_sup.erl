@@ -27,5 +27,5 @@ init([]) ->
 		  5000,
 		  worker,
 		  [node_config]},
-    {ok, { {one_for_one, 5, 10}, [NodeConfig]} }.
+    {ok, { {one_for_all, 0, 1}, [NodeConfig]} }.
 
