@@ -9,8 +9,5 @@
                   stdlib
                  ]},
   {mod, { baomi_app, []}},
-  {env, [
-	{start_type, recover},
-	{key_file, "baomi.key"}
-	]}
+  {env, []}
  ]}.
