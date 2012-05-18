@@ -2,11 +2,12 @@
  [
   {description, ""},
   {vsn, "1"},
-  {modules, [baomi, baomi_sup, baomi_server]},
-  {registered, []},
+  {modules, [baomi, baomi_app, baomi_sup, baomi_server, baomi_http]},
+  {registered, [baomi_sup, baomi_server]},
   {applications, [
                   kernel,
-                  stdlib
+                  stdlib,
+		  node_config
                  ]},
   {mod, { baomi_app, []}},
   {env, []}

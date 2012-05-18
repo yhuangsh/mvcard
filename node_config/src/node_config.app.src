@@ -2,7 +2,8 @@
  [
   {description, ""},
   {vsn, "1"},
-  {registered, []},
+  {modules, [node_config, node_config_app, node_config_sup]}
+  {registered, [node_config_sup]},
   {applications, [
                   kernel,
                   stdlib,

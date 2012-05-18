@@ -2,10 +2,12 @@
  [
   {description, "Simple Round-robin Load Balancing Server"},
   {vsn, "1"},
-  {registered, [fenliu_server]},
+  {modules, [fenliu, fenliu_app, fenliu_sup, fenliu_server]},
+  {registered, [fenliu_sup, fenliu_server]},
   {applications, [
                   kernel,
-                  stdlib
+                  stdlib,
+		  node_config
                  ]},
   {mod, { fenliu_app, []}},
   {env, []}
