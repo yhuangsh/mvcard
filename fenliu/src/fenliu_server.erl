@@ -11,7 +11,7 @@
 -behaviour(gen_server).
 
 %% API
--export([start_link/4]).
+-export([start_link/2]).
 -export([call/2, call/3, cast/2]).
  
 %% gen_server callbacks
@@ -20,20 +20,20 @@
 
 -define(SERVER, ?MODULE). 
 
--record(state, {server_name, node_list, max_fails, call_timeout}).
+-record(state, {server_name, node_list}).
 
 %%%===================================================================
 %%% API
 %%%===================================================================
 
-start_link(ServerName, Nodes, MaxFails, CallTimeout) when is_atom(ServerName), is_list(Nodes), is_integer(MaxFails), is_integer(CallTimeout) ->
-    gen_server:start_link({local, fenliu:server_name(ServerName)}, ?SERVER, [ServerName, Nodes, MaxFails, CallTimeout], []).
+start_link(ServerName, Nodes) when is_atom(ServerName), is_list(Nodes) ->
+    gen_server:start_link({local, fenliu:server_name(ServerName)}, ?SERVER, [ServerName, Nodes], []).
 
 call(ServerName, Request) ->
-    gen_server:call(fenliu:server_name(ServerName), {call, Request}).
+    gen_server:call(fenliu:server_name(ServerName), {call, Request, 5000}).
 
 call(ServerName, Request, Timeout) when is_integer(Timeout) ->
-    gen_server:call(fenliu:server_name(ServerName), {call, Request}, Timeout).
+    gen_server:call(fenliu:server_name(ServerName), {call, Request, Timeout}, Timeout + 100).
 
 cast(ServerName, Msg) ->
     gen_server:cast(fenliu:server_name(ServerName), {cast, Msg}).
@@ -43,15 +43,12 @@ cast(ServerName, Msg) ->
 %%% gen_server callbacks
 %%%===================================================================
 
-init([ServerName, Nodes, MaxFails, CallTimeout]) ->
-    NodeList = [{N, MaxFails} || N <- Nodes],
+init([ServerName, Nodes]) ->
     {ok, #state{server_name = ServerName,
-		node_list = NodeList,
-		max_fails = MaxFails,
-		call_timeout = CallTimeout}}.
+		node_list = Nodes}}.
 
-handle_call({call, Request}, _From, State) ->
-    call_node(Request, State);
+handle_call({call, Request, Timeout}, _From, State) ->
+    call_node(Request, State, Timeout);
 handle_call(nodes, _From, State) ->
     NodeList = State#state.node_list,
     {reply, {ok, NodeList}, State}.
@@ -60,11 +57,10 @@ handle_cast({cast, Msg}, State) ->
     cast_node(Msg, State);
 handle_cast({add_nodes, Nodes}, State) ->
     NodeList = State#state.node_list,
-    NewNodeList = [{N, State#state.max_fails} || N <- Nodes],
-    {noreply, State#state{node_list = NodeList ++ NewNodeList}}; 
+    {noreply, State#state{node_list = NodeList ++ Nodes}}; 
 handle_cast({remove_nodes, Nodes}, State) ->
     NodeList = State#state.node_list,
-    NewNodeList = lists:filter(fun({N, _}) -> not lists:member(N, Nodes) end, NodeList),
+    NewNodeList = lists:filter(fun(N) -> not lists:member(N, Nodes) end, NodeList),
     {noreply, State#state{node_list = NewNodeList}}.
 
 handle_info(_Info, State) ->
@@ -80,12 +76,10 @@ code_change(_OldVsn, State, _Extra) ->
 %%% Internal functions
 %%%===================================================================
 
-call_node(Request, State) ->
+call_node(Request, State, Timeout) ->
     NodeList = State#state.node_list,
     ServerName = State#state.server_name,
-    CallTimeout = State#state.call_timeout,
-    NodeList = State#state.node_list,
-    case call_node_1(ServerName, Request, CallTimeout, NodeList) of
+    case call_node_1(ServerName, Request, Timeout, NodeList) of
 	{ok, Reply, NewNodeList} ->
 	    {reply, Reply, State#state{node_list = NewNodeList}};
 	{error, run_out_of_nodes} ->
@@ -93,20 +87,22 @@ call_node(Request, State) ->
     end.
 
 call_node_1(_, _, _, []) -> {error, run_out_of_nodes};
-call_node_1(ServerName, Request, CallTimeout, [{_, 0}|T]) -> call_node_1(ServerName, Request, CallTimeout, T); 
-call_node_1(ServerName, Request, CallTimeout, [{Node, FailCount}|T]) -> 
-     case catch gen_server:call({ServerName, Node}, Request, CallTimeout) of
-	{'EXIT', {timeout, Trace}} ->
-	    {ok, {'EXIT', {timeout, Trace}}, T ++ [{Node, FailCount - 1}]};
-%	{'EXIT', {{nodedown, _}, _}} ->
-%	    call_node_1(Request, ServerName, CallTimeout, T ++ [{Node, FailCount - 1}]);
-%	{'EXIT', {noproc, _}} ->
-%	    call_node_1(Request, ServerName, CallTimeout, T ++ [{Node, FailCount - 1}]);
-	{'EXIT', Reason} ->
-	    error_logger:warning_msg(io_lib:format("call to {~p, ~p} failed, reaons: ~p~n", [ServerName, Node, Reason])),
-	    call_node_1(ServerName, Request, CallTimeout, T ++ [{Node, FailCount - 1}]);
+call_node_1(ServerName, Request, Timeout, [Node|T]) -> 
+     case catch gen_server:call({ServerName, Node}, Request, Timeout) of
+	 {'EXIT', {timeout, _}} ->
+	     error_logger:warning_msg(io_lib:format("call to {~p, ~p} time out~n", [ServerName, Node])),
+	     call_node_1(ServerName, Request, Timeout, T);
+	 {'EXIT', {noproc, _}} ->
+	     error_logger:warning_msg(io_lib:format("server ~p does not exist~n", [ServerName])),
+	     call_node_1(ServerName, Request, Timeout, T);
+	 {'EXIT', {{nodedown, _}, _}} ->
+	     error_logger:warning_msg(io_lib:format("node ~p is down~n", [Node])),
+	     call_node_1(ServerName, Request, Timeout, T);
+	 {'EXIT', Reason} ->
+	     error_logger:warning_msg(io_lib:format("call to {~p, ~p} failed, reaons: ~p~n", [ServerName, Node, Reason])),
+	     call_node_1(ServerName, Request, Timeout, T);
 	Reply ->
-	    {ok, Reply, T ++ [{Node, FailCount}]}
+	    {ok, Reply, T ++ [Node]}
     end.
 
 cast_node(Msg, State) ->
@@ -116,10 +112,9 @@ cast_node(Msg, State) ->
     {noreply, State#state{node_list = NewNodeList}}.
 
 cast_node_1(_, _, []) -> {ok, []};
-cast_node_1(ServerName, Msg, [{_, 0}|T]) -> cast_node_1(ServerName, Msg, T);
-cast_node_1(ServerName, Msg, [{Node, FailCount}|T]) ->
+cast_node_1(ServerName, Msg, [Node|T]) ->
     gen_server:cast({ServerName, Node}, Msg),
-    {ok, T ++ [{Node, FailCount}]}.
+    {ok, T ++ [Node]}.
 
 
 
