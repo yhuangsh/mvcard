@@ -38,8 +38,7 @@
 -record(state, {public_key, 
 		private_key, 
 		capacity, 
-		timeout,
-		nodes}).
+		timeout}).
 
 
 %%%===================================================================
@@ -48,7 +47,7 @@
 
 start_link() ->
     Env = application:get_all_env(),
-    KeyFile = proplists:get_value(keyfile, Env, "testkey0"),
+    KeyFile = proplists:get_value(keyfile, Env, "etc/baomi.key"),
     Capacity = proplists:get_value(capacity, Env, 1*?MILLION),
     Timeout = proplists:get_value(timeout, Env, 2*?HOURS),
     start_link(KeyFile, Capacity, Timeout).
@@ -76,7 +75,7 @@ stop() ->
 
 init([KeyFile, Capacity, Timeout]) ->
     error_logger:info_msg(io_lib:format("Baomi: { keyfile = ~s, capacity = ~p, timeout = ~p~n", [KeyFile, Capacity, Timeout])),
-
+    
     PrivateKey = get_private_key_from_file(KeyFile),
     PublicKey = #'RSAPublicKey'{modulus = PrivateKey#'RSAPrivateKey'.modulus, 
 				publicExponent = PrivateKey#'RSAPrivateKey'.publicExponent},
