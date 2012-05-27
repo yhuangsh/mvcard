@@ -1,0 +1,12 @@
+{application, nihao,
+ [
+  {description, ""},
+  {vsn, "1"},
+  {registered, []},
+  {applications, [
+                  kernel,
+                  stdlib
+                 ]},
+  {mod, { nihao_app, []}},
+  {env, []}
+ ]}.
