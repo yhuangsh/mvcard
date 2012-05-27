@@ -1,0 +1,11 @@
+{application, common,
+ [
+  {description, ""},
+  {vsn, "1"},
+  {modules, [common]},
+  {registered, []},
+  {applications, [
+                  kernel,
+                  stdlib
+                 ]}
+ ]}.
