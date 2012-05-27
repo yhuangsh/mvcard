@@ -21,5 +21,6 @@ start_link() ->
 %% ===================================================================
 
 init([]) ->
+    error_logger:info_msg("Fenliu: supervisor started~p"),
     {ok, { {one_for_one, 5, 10}, []} }.
 

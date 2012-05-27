@@ -44,6 +44,7 @@ cast(ServerName, Msg) ->
 %%%===================================================================
 
 init([ServerName, Nodes]) ->
+    error_logger:info_msg("Fenliu: for ~p at ~p~n", [ServerName, Nodes]),
     {ok, #state{server_name = ServerName,
 		node_list = Nodes}}.
 

@@ -6,8 +6,7 @@
   {registered, [fenliu_sup, fenliu_server]},
   {applications, [
                   kernel,
-                  stdlib,
-		  node_config
+                  stdlib
                  ]},
   {mod, { fenliu_app, []}},
   {env, []}
