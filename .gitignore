@@ -1,10 +1,11 @@
 .eunit
+.yaws
 ebin
 deps
-priv
 *.o
 *.beam
 *.plt
 rel/files
 rel/*.vbox
+rel/sales.veeka.com/test
 Thumbs.db
