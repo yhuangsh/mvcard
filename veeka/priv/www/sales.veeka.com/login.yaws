@@ -1,0 +1,34 @@
+<erl>
+out(_) -> {ssi, "START", [], []}.
+</erl>
+
+<erl>
+
+out(A) ->
+    out_1(yaws_api:parse_post(A)).
+
+out_1([]) ->
+    {ehtml, 
+     [
+      {h2, [], "Veeka Sales Agent Login"},
+      {form, [{action, "login.yaws"}, {method, "post"}],
+       [
+	"Agent ID:", {input, [{type, "text"}, {name, "sid"}]},
+	{br},
+	"Password:", {input, [{type, "password"}, {name, "pin"}]},
+	{br},
+	{input, [{type, "submit"}]}
+       ]}]};
+out_1(Query) ->
+    SalesId = proplists:get_value("sid", Query, undefined),
+    Pincode = proplists:get_value("pin", Query, undefined),
+    [
+     yaws_api:setcookie("session", SalesId ++ "+" ++ Pincode),
+     {redirect_local, "/merchant.yaws"}
+    ].
+    
+</erl>
+
+<erl>
+out(_) -> {ssi, "END", [], []}.
+</erl>

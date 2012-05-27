@@ -1,0 +1,21 @@
+<erl>
+out(_) -> {ssi, "START", [], []}.
+</erl>
+
+<erl>
+
+out(A) -> 
+    Session = yaws_api:find_cookie_val("session", (A#arg.headers)#headers.cookie),
+    out_1(Session).
+
+out_1("deleted") -> out_1([]);
+out_1([]) -> 
+    yaws_api:setcookie("session", "deleted"), 
+    {redirect_local, "/login.yaws"};
+out_1(Session) -> {redirect_local, "/merchant.yaws"}.
+
+</erl>
+
+<erl>
+out(_) -> {ssi, "END", [], []}.
+</erl>

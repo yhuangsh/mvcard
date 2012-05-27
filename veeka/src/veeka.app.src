@@ -1,0 +1,14 @@
+{application, veeka,
+ [
+  {description, ""},
+  {vsn, "1"},
+  {module, [veeka_app, veeka_sup, dianping]},
+  {registered, []},
+  {applications, [
+                  kernel,
+                  stdlib,
+		  mnesia
+                 ]},
+  {mod, { veeka_app, []}},
+  {env, []}
+ ]}.

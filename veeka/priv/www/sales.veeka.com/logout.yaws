@@ -1,0 +1,21 @@
+<erl>
+out(_) -> {ssi, "START", [], []}.
+</erl>
+
+<erl>
+
+out(A) ->
+    {ehtml, 
+     [
+      {p, [], 
+       [
+	"You've logged out, please ",
+	{a, [{href, "/login.yaws"}], "login"},
+	" again"
+       ]}]}.
+   
+</erl>
+
+<erl>
+out(_) -> {ssi, "END", [], []}.
+</erl>
