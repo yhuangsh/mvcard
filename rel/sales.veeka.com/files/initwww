@@ -1,0 +1,12 @@
+#!/bin/sh
+
+DIR=$(cd ${0%/*} && pwd)
+
+for i in $DIR/../lib/*/priv/www/*; 
+do
+  TARGET=$DIR/../www/${i#$DIR/*/www/};
+  mkdir -p $TARGET;
+  cp $i/* $TARGET;
+done
+
+
