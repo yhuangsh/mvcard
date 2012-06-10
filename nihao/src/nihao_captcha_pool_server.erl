@@ -1,4 +1,4 @@
--module(nihao_auth_server).
+-module(nihao_captcha_pool_server).
 
 -behaviour(gen_server).
 
@@ -10,9 +10,11 @@
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
 	 terminate/2, code_change/3]).
 
+-include("../../common/include/common.hrl").
+
 -define(SERVER, ?MODULE). 
 
--record(state, {}).
+-record(state, {q, capacity}).
 
 %%%===================================================================
 %%% API
@@ -22,34 +24,36 @@ start_link() ->
     gen_server:start_link({local, ?SERVER}, ?MODULE, [], []).
 
 child_spec() ->
-    {nihao_auth_server,
-     {nihao_auth_server, start_link, []},
+    {nihao_captcha_pool_server,
+     {nihao_captcha_pool_server, start_link, []},
      permanent,
      5000,
      worker,
-     [nihao_auth_server]}.
+     [nihao_captcha_pool_server]}.
 
 %%%===================================================================
 %%% gen_server callbacks
 %%%===================================================================
 
+-define(DEFAULT_CAPTCHA_POOL_CAPACITY, (10*?THOUSANDS)).
+
 init([]) ->
-    {ok, #state{}}.
+    Env = application:get_all_env(),
+    Capacity = proplists:get_value(capacity, Env, ?DEFAULT_CAPTCHA_POOL_CAPACITY),
+    {ok, #state{q=queue:new(), capacity=Capacity}}.
 
-handle_call({auth, Id, Password}, _From, State) ->
-    case catch nihao_user_db:authenticate(Id, Password) of
-	{atomic, ok} ->
-	    {reply, ok, State};
-	{aborted, wrong_password} ->
-	    {reply, failed, State};
-	{aborted, user_not_found} ->
-	    {reply, failed, State};
-	{aborted, interr} ->
-	    {reply, failed, State}
+handle_call(get, _From, State) ->
+    {Reply, Q} = queue:out(State#state.q),
+    {reply, Reply, State#state{q=Q}}.
+
+handle_cast({add, CaptchaEntries}, State) ->
+    case queue:len(State#state.q) + length(CaptchaEntries) < State#state.capacity of
+	true ->
+	    Q = queue:join(State#state.q, queue:from_list(CaptchaEntries)),
+	    {noreply, State#state{q=Q}};
+	false ->
+	    {noreply, State}
     end.
-
-handle_cast(_Msg, State) ->
-    {noreply, State}.
 
 handle_info(_Info, State) ->
     {noreply, State}.
@@ -63,4 +67,3 @@ code_change(_OldVsn, State, _Extra) ->
 %%%===================================================================
 %%% Internal functions
 %%%===================================================================
-

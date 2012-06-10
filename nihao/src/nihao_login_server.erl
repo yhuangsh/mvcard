@@ -1,4 +1,4 @@
--module(nihao_profile_server).
+-module(nihao_login_server).
 
 -behaviour(gen_server).
 
@@ -22,12 +22,12 @@ start_link() ->
     gen_server:start_link({local, ?SERVER}, ?MODULE, [], []).
 
 child_spec() ->
-    {nihao_profile_server,
-     {nihao_profile_server, start_link, []},
-     permanent, 
+    {nihao_login_server,
+     {nihao_login_server, start_link, []},
+     permanent,
      5000,
      worker,
-     [nihao_profile_server]}.
+     [nihao_login_server]}.
 
 %%%===================================================================
 %%% gen_server callbacks
@@ -36,28 +36,28 @@ child_spec() ->
 init([]) ->
     {ok, #state{}}.
 
-handle_call({update, Id, Email, Mobile, Password}, _From, State) ->
-    case nihao_user_db:update(Id, Email, Mobile, Password) of
-	{atomic, ok} ->
-	    {reply, ok, State};
-	{aborted, wrong_password} ->
-	    {reply, failed, State};
-	{aborted, user_not_found} ->
-	    {reply, failed, State};
-	{aborted, interr} ->
-	    {reply, failed, State}
-    end;
-handle_call({delete, Id, Password}, _From, State) ->
-    case nihao_user_db:delete(Id, Password) of
-	{atomic, ok} ->
-	    {reply, ok, State};
-	{aborted, wrong_password} ->
-	    {reply, failed, State};
-	{aborted, user_not_found} ->
-	    {reply, failed, State};
-	{aborted, interr} ->
-	    {reply, failed, State}
-    end.
+handle_call({login, {UserId, Password}, {ServiceId, ExpireTime, Opaque}}, _From, State) ->
+    Reply = case nihao_user_db:verify(UserId, Password) of
+		{ok, user_verified} ->
+		    nihao_session_cache:create({UserId, ServiceId}, ExpireTime, Opaque);
+		Else ->
+		    Else
+	    end,
+    {reply, Reply, State};
+handle_call({login, {UserId, Password}, {CaptchaId, CaptchaCode}, {ServiceId, ExpireTime, Opaque}}, _From, State) ->
+    Ret1 = nihao_user_db:verify(UserId, Password),
+    Ret2 = nihao_captcha_server:verify(CaptchaId, CaptchaCode),
+    Reply = case {Ret1, Ret2} of
+		{{ok, user_verified}, {ok, captcha_verified}} ->
+		    nihao_session_cache:create({UserId, ServiceId}, ExpireTime, Opaque);
+		{{ok, user_verified}, CaptchaNOK} ->
+		    CaptchaNOK;
+		{UserNOK, {ok, captcha_verified}} ->
+		    UserNOK;
+		_NOK ->
+		    {nok, both_failed}
+	    end,
+    {reply, Reply, State}.
 
 handle_cast(_Msg, State) ->
     {noreply, State}.
@@ -74,3 +74,4 @@ code_change(_OldVsn, State, _Extra) ->
 %%%===================================================================
 %%% Internal functions
 %%%===================================================================
+

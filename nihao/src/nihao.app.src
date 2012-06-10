@@ -2,6 +2,11 @@
  [
   {description, ""},
   {vsn, "1"},
+  {modules, [nihao,
+	     nihao_app, nihao_sup, 
+	     nihao_auth_server, nihao_register_server, nihao_profile_server,
+	     nihao_captcha_server, nihao_captcha_generation_server,
+	     nihao_user_db, nihao_captcha_db]},
   {registered, []},
   {applications, [
                   kernel,

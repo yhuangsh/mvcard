@@ -1,4 +1,4 @@
--module(nihao_register_server).
+-module(nihao_session_server).
 
 -behaviour(gen_server).
 
@@ -22,13 +22,13 @@ start_link() ->
     gen_server:start_link({local, ?SERVER}, ?MODULE, [], []).
 
 child_spec() ->
-    {nihao_register_server,
-     {nihao_register_server, start_link, []},
+    {nihao_session_server,
+     {nihao_session_server, start_link, []},
      permanent,
      5000,
      worker,
-     [nihao_register_server]}.
-
+     [nihao_session_server]}.
+    
 %%%===================================================================
 %%% gen_server callbacks
 %%%===================================================================
@@ -36,24 +36,39 @@ child_spec() ->
 init([]) ->
     {ok, #state{}}.
 
-handle_call({register, {UserId, Password}, {CaptchaId, CaptchaCode}}, _From, State) ->
-    Reply = case nihao_captcha_server:verify(CaptchaId, CaptchaCode) of
-		{ok, captcha_verified} ->
-		    nihao_user_db:create(UserId, Password);
+handle_call({change_password, {UserId, ServiceId}, {CaptchaId, CaptchaCode}, {OldPassword, NewPassword}}, _From, State) ->
+    Reply = case nihao_session_cache:read({UserId, ServiceId}) of
+		{ok, read, _} ->
+		    case nihao:verify_captcha({CaptchaId, CaptchaCode}) of
+			{ok, captcha_verified} ->
+			    case nihao_user_db:verify(UserId, OldPassword) of
+				{ok, user_verified} ->
+				    nihao_user_db:update(UserId, NewPassword);
+				NOK ->
+				    NOK
+			    end;
+			NOK ->
+			    NOK
+		    end;
 		NOK ->
 		    NOK
 	    end,
     {reply, Reply, State};
-handle_call({reset_password, {UserId, NewPassword}, {CaptchaId, CaptchaCode}}, _From, State) ->
-    Reply = case nihao_captcha_server:verify(CaptchaId, CaptchaCode) of
-		{ok, captcha_verified} ->
-		    nihao_user_db:update(UserId, NewPassword);
+handle_call({get_opaque, {UserId, ServiceId}}, _From, State) ->
+    {reply, nihao_session_cache:read({UserId, ServiceId}), State};
+handle_call({set_opaque, {UserId, ServiceId}, Opaque}, _From, State) ->
+    Reply = case nihao_session_cache:read({UserId, ServiceId}) of
+		{ok, {read, Opaque}} ->
+		    {ok, session_updated};
+		{ok, {read, _OldOpaque}} ->
+		    nihao_session_cache:update({UserId, ServiceId}, Opaque);
 		NOK ->
 		    NOK
 	    end,
     {reply, Reply, State}.
 
-handle_cast(_Msg, State) ->
+handle_cast({logout, {UserId, ServiceId}}, State) ->
+    nihao_session_cache:delete({UserId, ServiceId}),
     {noreply, State}.
 
 handle_info(_Info, State) ->
@@ -68,4 +83,3 @@ code_change(_OldVsn, State, _Extra) ->
 %%%===================================================================
 %%% Internal functions
 %%%===================================================================
-

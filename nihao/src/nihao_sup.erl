@@ -24,5 +24,8 @@ start_link() ->
 %% ===================================================================
 
 init([]) ->
-    {ok, { {one_for_one, 5, 10}, []} }.
+    {ok, { {one_for_one, 5, 10},
+	   [
+	    nihao_captcha_generation_server:child_spec()
+	   ]}}.
 
