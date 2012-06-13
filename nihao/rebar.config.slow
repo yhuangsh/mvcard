@@ -1,0 +1,3 @@
+{erl_opts, [ {d, 'RUN_SLOW_TESTS'} ]}.
+{eunit_opts, [ verbose ]}.
+{cover_enabled, true}.
