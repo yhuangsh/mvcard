@@ -3,7 +3,7 @@
 
 -behaviour(gen_server).
 
--include("../../include/defs.hrl").
+-include("../../common/include/common.hrl").
 
 -include_lib("public_key/include/public_key.hrl"). 
 
@@ -74,7 +74,7 @@ stop() ->
 %%%===================================================================
 
 init([KeyFile, Capacity, Timeout]) ->
-    error_logger:info_msg(io_lib:format("Baomi: { keyfile = ~s, capacity = ~p, timeout = ~p~n", [KeyFile, Capacity, Timeout])),
+    error_logger:info_msg("Baomi: keyfile=~s, capacity=~p, timeout=~p~n", [KeyFile, Capacity, Timeout]),
     
     PrivateKey = get_private_key_from_file(KeyFile),
     PublicKey = #'RSAPublicKey'{modulus = PrivateKey#'RSAPrivateKey'.modulus, 
