@@ -22,7 +22,7 @@ start_link() ->
 
 init([]) ->
     Env = application:get_all_env(),
-    case proplists:gen_value(fenliu, Env, false) of
+    case proplists:get_value(fenliu, Env, false) of
 	{true, Nodes} when is_list(Nodes) ->
 	    case lists:member(local, Nodes) of
 		true ->
