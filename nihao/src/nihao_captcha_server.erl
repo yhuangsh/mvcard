@@ -37,7 +37,7 @@ child_spec() ->
 %%%===================================================================
 
 -define(DEFAULT_MAX_CAPACITY, 100000).
--define(DEFAULT_TTL, 2*?MINUTES).
+-define(DEFAULT_TTL, 120).
 
 init([]) ->
     Env = application:get_all_env(),
@@ -47,7 +47,7 @@ init([]) ->
 
 handle_call(get, _From, State) ->
     {CaptchaId, CaptchaCode, CaptchaImage} = fl_call(nihao_captcha_pool_server, get),
-    case nihao_captcha_cache:capacity() < State#state.max of
+    case nihao_captcha_cache:size() < State#state.max of
 	true ->
 	    ok = nihao_captcha_cache:create(CaptchaId, CaptchaCode, common:now_in_seconds() + State#state.ttl),
 	    {reply, {ok, {CaptchaId, CaptchaImage}}, State};
@@ -55,19 +55,7 @@ handle_call(get, _From, State) ->
 	    {reply, {nok, no_capacity}, State}
     end;
 handle_call({verify, {CaptchaId, CaptchaCode}}, _From, State) ->
-    Reply = case nihao_captcha_cache:read(CaptchaId) of
-		{CaptchaId, CaptchaCode, ExpireTime} ->
-		    ok = nihao_captcha_cache:delete(CaptchaId),
-		    case common:now_in_seconds() - ExpireTime < 0 of
-			true ->
-			    {ok, captcha_verified};
-			false ->
-			    {nok, captcha_expired}
-		    end;
-		_Else ->
-		    {nok, captcha_not_verified}
-	    end,
-    {reply, Reply, State}.
+    {reply, nihao_captcha_cache:verify(CaptchaId, CaptchaCode), State}.
 		   
 handle_cast(_Msg, State) ->
     {noreply, State}.

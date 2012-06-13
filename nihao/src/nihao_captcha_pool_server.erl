@@ -6,6 +6,10 @@
 -export([start_link/0,
 	 child_spec/0]).
 
+-ifdef(TEST).
+-include_lib("eunit/include/eunit.hrl").
+-endif.
+
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
 	 terminate/2, code_change/3]).
@@ -43,7 +47,7 @@ init([]) ->
     {ok, #state{q=queue:new(), capacity=Capacity}}.
 
 handle_call(get, _From, State) ->
-    {Reply, Q} = queue:out(State#state.q),
+    {{value, Reply}, Q} = queue:out(State#state.q),
     {reply, Reply, State#state{q=Q}}.
 
 handle_cast({add, CaptchaEntries}, State) ->
@@ -67,3 +71,58 @@ code_change(_OldVsn, State, _Extra) ->
 %%%===================================================================
 %%% Internal functions
 %%%===================================================================
+
+%%%===================================================================
+%%% Unit Tests
+%%%===================================================================
+
+-ifdef(TEST).
+
+-define(T(X), {??X, fun X/0}).
+
+all_test_() ->
+    {inorder,
+     [
+      ?T(setup0),
+
+      ?T(test0),
+      ?T(test1),
+%      ?T(test2),
+%      ?T(test3),
+%      ?T(test4),
+
+%      ?T(test5),
+%      ?T(test6),
+%      ?T(test7),
+%      ?T(test8),
+
+      ?T(cleanup0)
+     ]
+    }.
+
+setup0() ->
+    {ok, _} = start_link(),
+    ok.
+    
+cleanup0() ->
+    ok.
+
+test0() ->
+    X = nihao_captcha_generator:generate(6),
+    ok = gen_server:cast(?SERVER, {add, [X]}),
+    X = gen_server:call(?SERVER, get),
+    ok.
+
+test1() ->
+    X = nihao_captcha_generator:generate(4, 5),
+    ok = gen_server:cast(?SERVER, {add, X}),
+    Y = [gen_server:call(?SERVER, get),
+	 gen_server:call(?SERVER, get),
+	 gen_server:call(?SERVER, get),
+	 gen_server:call(?SERVER, get),
+	 gen_server:call(?SERVER, get)],
+    [] = X -- Y,
+    
+    ok.
+
+-endif.

@@ -54,7 +54,7 @@ reset_password(UserInfo, CaptchaInfo) when is_tuple(UserInfo), is_tuple(CaptchaI
 
 %% Scheduled Activity
 start_captcha_sweeper(TimeToStart, Interval) -> fl_call(nihao_scheduled_activity, {start_captcha_cache_sweeper, TimeToStart, Interval}).
-stop_captcha_sweeper() -> fl_call(nihao_scheduled_activity, stop_captcha_ache_sweeper).
+stop_captcha_sweeper() -> fl_call(nihao_scheduled_activity, stop_captcha_cache_sweeper).
 
 start_captcha_generator(TimeToStart, Interval, CodeLen, Count) -> fl_call(nihao_scheduled_activity, {start_captcha_generator, TimeToStart, Interval, CodeLen, Count}).
 stop_captcha_generator() -> fl_call(nihao_scheduled_activity, stop_captchA_generator).
