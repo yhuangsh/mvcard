@@ -1,6 +1,7 @@
 -module(nihao).
 
--export([get_captcha/0,
+-export([add_captcha_to_pool/1,
+	 get_captcha/0,
 	 verify_captcha/1,
 
 	 login/2,
@@ -25,6 +26,8 @@
 -include("../../fenliu/include/fenliu.hrl").
 
 %% Captcha 
+add_captcha_to_pool(Captchas) -> fl_cast(nihao_captcha_pool_server, {add, Captchas}).
+
 get_captcha() -> fl_call(nihao_captcha_server, get).
 verify_captcha(CaptchaInfo) -> fl_call(nihao_captcha_server, {verify, CaptchaInfo}).
 

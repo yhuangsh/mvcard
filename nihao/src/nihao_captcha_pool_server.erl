@@ -46,9 +46,15 @@ init([]) ->
     Capacity = proplists:get_value(capacity, Env, ?DEFAULT_CAPTCHA_POOL_CAPACITY),
     {ok, #state{q=queue:new(), capacity=Capacity}}.
 
+handle_call(stop, _From, State) ->
+    {stop, normal, stopped, State};
 handle_call(get, _From, State) ->
-    {{value, Reply}, Q} = queue:out(State#state.q),
-    {reply, Reply, State#state{q=Q}}.
+    case queue:out(State#state.q) of
+	{{value, Reply}, Q} -> 
+	    {reply, {ok, Reply}, State#state{q=Q}};
+	{empty, Q} ->
+	    {reply, {nok, run_out_of_captcha}, State#state{q=Q}}
+    end.
 
 handle_cast({add, CaptchaEntries}, State) ->
     case queue:len(State#state.q) + length(CaptchaEntries) < State#state.capacity of
@@ -105,12 +111,13 @@ setup0() ->
     ok.
     
 cleanup0() ->
+    stopped = gen_server:call(?SERVER, stop),
     ok.
 
 test0() ->
     X = nihao_captcha_generator:generate(6),
     ok = gen_server:cast(?SERVER, {add, [X]}),
-    X = gen_server:call(?SERVER, get),
+    {ok, X} = gen_server:call(?SERVER, get),
     ok.
 
 test1() ->
@@ -121,7 +128,8 @@ test1() ->
 	 gen_server:call(?SERVER, get),
 	 gen_server:call(?SERVER, get),
 	 gen_server:call(?SERVER, get)],
-    [] = X -- Y,
+    Y1 = [C || {ok, C} <- Y],
+    [] = X -- Y1,
     
     ok.
 

@@ -87,7 +87,7 @@ all_test_() ->
 
       ?T(test0),
       ?T(test1),
-%      ?T(test2),
+      ?T(test2),
 %      ?T(test3),
 %      ?T(test4),
 
@@ -114,6 +114,18 @@ test1() ->
     X = generate(6, 10),
     10 = length(X),
     [begin 16 = byte_size(I), 6 = length(C) end || {I, C, _} <- X],
+    
+    ok.
+
+test2() ->
+    X = generate(6, 10),
+    Y = generate(6, 10),
+    
+    X1 = sets:from_list([Id || {Id, _, _} <- X]),
+    Y1 = sets:from_list([Id || {Id, _, _} <- Y]),
+
+    EmptySet = sets:new(),
+    EmptySet = sets:intersection(X1, Y1),
     
     ok.
 

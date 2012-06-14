@@ -7,6 +7,7 @@
 	 sweeper/1]).
 
 -ifdef(TEST).
+-export([delete_cache/0]).
 -include_lib("eunit/include/eunit.hrl").
 -endif.
 
@@ -18,6 +19,11 @@ init() ->
     {atomic, ok} = mnesia:create_table(?NIHAO_CAPTCHA_CACHE, [{attributes, record_info(fields, c)}, 
 							      {record_name, c},
 							      {ram_copies, [node()]}]).
+
+-ifdef(TEST).
+delete_cache() ->
+    {atomic, ok} = mnesia:delete_table(?NIHAO_CAPTCHA_CACHE).
+-endif.
 
 create(CaptchaId, CaptchaCode, ExpireTime) -> 
     ok = mnesia:dirty_write(?NIHAO_CAPTCHA_CACHE, #c{id=CaptchaId, code=CaptchaCode, expire_time=ExpireTime}),
@@ -36,6 +42,7 @@ verify(CaptchaId, CaptchaCode) ->
 		    {nok, captcha_expired}
 	    end;
 	[_OtherCaptcha] ->
+	    ok = mnesia:dirty_delete(?NIHAO_CAPTCHA_CACHE, CaptchaId),		    
 	    {nok, captcha_not_verified};
 	NOK ->
 	    {nok, {internal_error, NOK}}
@@ -94,8 +101,7 @@ all_test_() ->
       ?T(test2),
       ?T(test3),
       ?T(test4),
-
-%      ?T(test5),
+      ?T(test5),
 %      ?T(test6),
 %      ?T(test7),
 %      ?T(test8),
@@ -108,7 +114,7 @@ setup0() ->
     ok = mnesia:start().
     
 cleanup0() ->
-    {atomic, ok} = mnesia:delete_table(?NIHAO_CAPTCHA_CACHE),
+    delete_cache(),
     ok.
 
 test0() ->
@@ -145,8 +151,23 @@ test3() ->
 		  end, lists:seq(1, 10)),
     0 = size(),
     ok.
+
+test4() ->    
+    lists:foreach(fun(N) ->
+			  {ok, captcha_cached} = create(io_lib:format("id~p", [N]), 
+							io_lib:format("code~p", [N]),
+							expire_in(60))
+		  end, lists:seq(1, 10)),
+    10 = size(),
+
+    lists:foreach(fun(N) ->
+			  {nok, captcha_not_verified} = verify(io_lib:format("id~p", [N]), 
+							      io_lib:format("wrong_code", []))
+		  end, lists:seq(1, 10)),
+    0 = size(),
+    ok.
 			  
-test4() ->
+test5() ->
     lists:foreach(fun(N) ->
 			  {ok, captcha_cached} = create(io_lib:format("id~p", [N]), 
 							io_lib:format("code~p", [N]),
@@ -156,6 +177,7 @@ test4() ->
     timer:sleep(1000),
     {_, 500} = sweeper(common:now_in_seconds()),
     ok.
+
     
 expire_in(M) -> 
     common:now_in_seconds() + M.
