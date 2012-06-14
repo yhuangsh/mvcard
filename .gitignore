@@ -8,4 +8,5 @@ deps
 rel/files
 rel/*.vbox
 rel/sales.veeka.com/test
+rel/admin.mvcard.com.cn/admin
 Thumbs.db
