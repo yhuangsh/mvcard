@@ -1,8 +1,91 @@
-/**
- * XULSchoolChrome namespace.
- */
-if ("undefined" == typeof(XULSchoolChrome)) {
-  var XULSchoolChrome = {};
+
+if ("undefined" == typeof(zdp)) {
+    var zdp = {};
+};
+
+// parseUri 1.2.2
+// (c) Steven Levithan <stevenlevithan.com>
+// MIT License
+
+function parseUri(str) {
+	var	o   = parseUri.options,
+		m   = o.parser[o.strictMode ? "strict" : "loose"].exec(str),
+		uri = {},
+		i   = 14;
+
+	while (i--) uri[o.key[i]] = m[i] || "";
+
+	uri[o.q.name] = {};
+	uri[o.key[12]].replace(o.q.parser, function ($0, $1, $2) {
+		if ($1) uri[o.q.name][$1] = $2;
+	});
+
+	return uri;
+};
+
+parseUri.options = {
+	strictMode: true,
+	key: ["source","protocol","authority","userInfo","user","password","host","port","relative","path","directory","file","query","anchor"],
+	q:   {
+		name:   "queryKey",
+		parser: /(?:^|&)([^&=]*)=?([^&]*)/g
+	},
+	parser: {
+		strict: /^(?:([^:\/?#]+):)?(?:\/\/((?:(([^:@]*)(?::([^:@]*))?)?@)?([^:\/?#]*)(?::(\d*))?))?((((?:[^?#\/]*\/)*)([^?#]*))(?:\?([^#]*))?(?:#(.*))?)/,
+		loose:  /^(?:(?![^:@]+:[^:@\/]*@)([^:\/?#.]+):)?(?:\/\/)?((?:(([^:@]*)(?::([^:@]*))?)?@)?([^:\/?#]*)(?::(\d*))?)(((\/(?:[^?#](?![^?#\/]*\.[^?#\/.]+(?:[?#]|$)))*\/?)?([^?#\/]*))(?:\?([^#]*))?(?:#(.*))?)/
+	}
+};
+
+zdp.parseAddr = function(addr) {
+    addr2 = addr.split(":")[1];
+    return addr2.split("\u00a0\u00a0")[0];
+}
+
+zdp.parsePhone = function(addr) {
+    addr2 = addr.split(":")[1];
+    return addr2.split("\u00a0\u00a0")[1];
+}
+
+zdp.onPageLoad = function(event) {
+    if (event.target instanceof HTMLDocument) {  
+	doc = event.target;
+	if (doc.baseURI.search("dianping\.com") != -1) {
+	    search_result = doc.evaluate("//dd[./ul[@class='detail']]", doc, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
+	    for (i=0;i<search_result.snapshotLength;i++) {
+		dd = search_result.snapshotItem(i);
+		e = doc.evaluate("ul[@class='detail']/li[@class='shopname']/a", dd, null, XPathResult.ANY_TYPE, null).iterateNext();		
+	    	shopurl = parseUri(e.href);
+		shopcode = shopurl.file;
+	    	shopname = e.title;
+	    	e = doc.evaluate("ul[@class='detail']/li[@class='address']", dd, null, XPathResult.ANY_TYPE, null).iterateNext();
+	    	shopaddr = zdp.parseAddr(e.textContent);
+		shopphone = zdp.parsePhone(e.textContent);
+		
+		if (shopaddr == null) shopaddr="undefined";
+		if (shopname == null) shopname="undefined";
+		if (shopaddr == null) shopaddr="undefined";
+		if (shopphone == null) shopphone="undefined";
+
+	    	//alert("http://admin.weilink.me/checkin?id="+shopcode+"i1="+shopname+"i2="+shopaddr+"i3=unknown");
+		
+	    	ul = doc.evaluate("ul[@class='detail']", dd, null, XPathResult.ANY_TYPE, null).iterateNext();
+	    	newNode = doc.createElement("a");
+	    	newNode.href = "http://admin.weilink.me:8000/nobodyknows/checkin.yaws?id="+shopcode+"&i1="+shopname+"&i2="+shopaddr+"&i3="+shopphone;
+	    	newNode.appendChild(doc.createTextNode("Add"));
+	    	ul.parentNode.insertBefore(newNode, ul);
+	    } 
+	}
+    }
+};
+
+zdp.addHook = function() {
+    gBrowser.addEventListener("load", zdp.onPageLoad, true);
+    window.alert("turned on");
+};
+
+zdp.removeHook = function() {
+    gBrowser.removeEventListener("load", zdp.onPageLoad, true);
+    window.alert("turned off");
 };
 
 /*
@@ -35,7 +118,7 @@ if ("undefined" == typeof(XULSchoolChrome)) {
 </ul>
 */
 
-function getDetail(ul) {
+/*function getDetail(ul) {
     if (null != ul) {
 	var doc = ul.ownerDocument;
 
@@ -81,17 +164,8 @@ function onPageLoad(event) {
 	    }
 	}
     }
-}  
+} */ 
 
-/**
- * Controls the browser overlay for the Hello World extension.
- */
-XULSchoolChrome.BrowserOverlay = {
-  /**
-   * Says 'Hello' to the user.
-   */
-  sayHello : function(aEvent) {
-    gBrowser.addEventListener("load", onPageLoad, true);
-    window.alert("installed");
-  }
-};
+
+
+

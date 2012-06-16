@@ -4,12 +4,11 @@
   xmlns:em="http://www.mozilla.org/2004/em-rdf#">
 
   <Description about="urn:mozilla:install-manifest">
-    <em:id>helloworld@xulschool.com</em:id>
-    <em:name>XUL School Hello World</em:name>
-    <em:description>Welcome to XUL School!</em:description>
+    <em:id>zdp@mvcard.comc.cn</em:id>
+    <em:name>Zhua Dian Ping</em:name>
+    <em:description>A tool to extract dianping info</em:description>
     <em:version>0.1</em:version>
-    <em:creator>Appcoast</em:creator>
-    <em:homepageURL>https://developer.mozilla.org/en/XUL_School</em:homepageURL>
+    <em:creator>david</em:creator>
     <em:type>2</em:type>
 
     <!-- Mozilla Firefox -->
