@@ -9,43 +9,57 @@ out(A) ->
     {ok, I1} = yaws_api:queryvar(A, i1),
     {ok, I2} = yaws_api:queryvar(A, i2),
     {ok, I3} = yaws_api:queryvar(A, i3),
+    {ok, G1} = yaws_api:queryvar(A, g1),
+    {ok, G2} = yaws_api:queryvar(A, g2),
+    {ok, G3} = yaws_api:queryvar(A, g3),
+    {ok, R1} = yaws_api:queryvar(A, r1),
+    {ok, R2} = yaws_api:queryvar(A, r2),
+    {ok, R3} = yaws_api:queryvar(A, r3),
     
     case yaws_api:queryvar(A, r) of
 	undefined ->
 	    case mvc_admin:read(Id) of
-		{ok, {Id, {J1, J2, J3}}} ->
+		{ok, {Id, {J1, J2, J3, H1, H2, H3, S1, S2, S3}}} ->
 		    {ehtml, 
 		     [
 		      {p, [], f("Merchant:~p exists with the following info:", [Id])},
 		      {p, [], J1},
 		      {p, [], J2},
 		      {p, [], J3},
+		      {p, [], f("categories: ~s, ~s, ~s", [H1, H2, H3])},
+		      {p, [], f("areas: ~s, ~s, ~s", [S1, S2, S3])},
 		      {p, [], "The merchant you are about to check in are:"},
 		      {p, [], I1},
 		      {p, [], I2},
 		      {p, [], I3},
-		      {a, [{href, f("/nobodyknows/checkin.yaws?r=1&id=~s&i1=~s&i2=~s&i3=~s", [Id, I1, I2, I3])}],
+		      {p, [], f("categories: ~s, ~s, ~s", [G1, G2, G3])},
+		      {p, [], f("areas: ~s, ~s, ~s", [R1, R2, R3])},
+		      {a, [{href, f("/nobodyknows/checkin.yaws?r=1&id=~s&i1=~s&i2=~s&i3=~s&g1=~s&g2=~s&g3=~s&r1=~s&r2=~s&r3=~s", [Id, I1, I2, I3, G1, G2, G3, R1, R2, R3])}],
 		       "Replace"}
 		     ]};
 		{nok, not_found} ->
-		    {ok, created} = mvc_admin:create(Id, {I1, I2, I3}),
+		    {ok, created} = mvc_admin:create(Id, {I1, I2, I3, G1, G2, G3, R1, R2, R3}),
 		    {ehtml,
 		     [
 		      {p, [], "The following merchant info has been checked in"},
 		      {p, [], I1},
 		      {p, [], I2},
 		      {p, [], I3},
+		      {p, [], f("categories: ~s, ~s, ~s", [G1, G2, G3])},
+		      {p, [], f("areas: ~s, ~s, ~s", [R1, R2, R3])},
 		      {a, [{href, "/nobodyknows/export.yaws"}], "export as CSV file"}
-		     ]}
+		     ]}	  
 	    end;
 	{ok, "1"} ->
-	    {ok, updated} = mvc_admin:update(Id, {I1, I2, I3}),
+	    {ok, updated} = mvc_admin:update(Id, {I1, I2, I3, G1, G2, G3, R1, R2, R3}),
 	    {ehtml,
 	     [
 	      {p, [], "The following merchant info has been updated"},
 	      {p, [], I1},
 	      {p, [], I2},
 	      {p, [], I3},
+	      {p, [], f("categories: ~s, ~s, ~s", [G1, G2, G3])},
+	      {p, [], f("areas: ~s, ~s, ~s", [R1, R2, R3])},
 	      {a, [{href, "/nobodyknows/export.yaws"}], "export as CSV file"}
 	     ]}
     end.

@@ -60,7 +60,27 @@ zdp.onPageLoad = function(event) {
 	    	e = doc.evaluate("ul[@class='detail']/li[@class='address']", dd, null, XPathResult.ANY_TYPE, null).iterateNext();
 	    	shopaddr = zdp.parseAddr(e.textContent);
 		shopphone = zdp.parsePhone(e.textContent);
-		
+
+		gtags = [];
+		rtags = [];
+
+		e = doc.evaluate("ul[@class='detail']/li[@class='tags']/a", dd, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
+		if (e != null) {
+		    for (j=0;j<e.snapshotLength;j++) {
+			tag = e.snapshotItem(j);
+			flag = parseUri(tag.href).file;
+			if (flag[0] == "g") {
+		    	    gtags.push(tag.textContent);
+			} else if (flag[0] == "r") {
+		    	    rtags.push(tag.textContent);
+			}
+		    }
+		    gl=gtags.length; 
+		    rl=rtags.length;
+		    for (j=gl;j<3;j++) gtags[j] = "undefined";
+		    for (j=rl;j<3;j++) rtags[j] = "undefined";
+		}
+
 		if (shopaddr == null) shopaddr="undefined";
 		if (shopname == null) shopname="undefined";
 		if (shopaddr == null) shopaddr="undefined";
@@ -70,7 +90,7 @@ zdp.onPageLoad = function(event) {
 		
 	    	ul = doc.evaluate("ul[@class='detail']", dd, null, XPathResult.ANY_TYPE, null).iterateNext();
 	    	newNode = doc.createElement("a");
-	    	newNode.href = "http://admin.weilink.me:8000/nobodyknows/checkin.yaws?id="+shopcode+"&i1="+shopname+"&i2="+shopaddr+"&i3="+shopphone;
+	    	newNode.href = "http://admin.weilink.me:8000/nobodyknows/checkin.yaws?id="+shopcode+"&i1="+shopname+"&i2="+shopaddr+"&i3="+shopphone+"&g1="+gtags[0]+"&g2="+gtags[1]+"&g3="+gtags[2]+"&r1="+rtags[0]+"&r2="+rtags[1]+"&r3="+rtags[2];
 	    	newNode.appendChild(doc.createTextNode("Add"));
 	    	ul.parentNode.insertBefore(newNode, ul);
 	    } 

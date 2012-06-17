@@ -3,6 +3,8 @@
 out(A) ->
     {ok, CSV} = mvc_admin:export(csv),
     Lines = lists:foldl(fun(L, Acc) -> Acc ++ L ++ "\n" end, [], CSV),
-    {content, "text/plain; charset=utf-8", Lines}.
+    [{header, ["Content-Disposition: ", "attachment; filename=\"merchants.csv\""]},
+     {content, "text/plain; charset=utf-8", "\xEF\xBB\xBF" ++ Lines}
+    ].
 
 </erl>
