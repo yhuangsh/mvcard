@@ -50,6 +50,7 @@ zdp.onPageLoad = function(event) {
     if (event.target instanceof HTMLDocument) {  
 	doc = event.target;
 	if (doc.baseURI.search("dianping\.com") != -1) {
+	    city = doc.evaluate("//div[@class='location']/a/span", doc, null, XPathResult.ANY_TYPE, null).iterateNext().textContent;
 	    search_result = doc.evaluate("//dd[./ul[@class='detail']]", doc, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
 	    for (i=0;i<search_result.snapshotLength;i++) {
 		dd = search_result.snapshotItem(i);
@@ -90,7 +91,7 @@ zdp.onPageLoad = function(event) {
 		
 	    	ul = doc.evaluate("ul[@class='detail']", dd, null, XPathResult.ANY_TYPE, null).iterateNext();
 	    	newNode = doc.createElement("a");
-	    	newNode.href = "http://admin.weilink.me:8000/nobodyknows/checkin.yaws?id="+shopcode+"&i1="+shopname+"&i2="+shopaddr+"&i3="+shopphone+"&g1="+gtags[0]+"&g2="+gtags[1]+"&g3="+gtags[2]+"&r1="+rtags[0]+"&r2="+rtags[1]+"&r3="+rtags[2];
+	    	newNode.href = "http://admin.weilink.me:8000/nobodyknows/checkin.yaws?id="+shopcode+"&i1="+shopname+"&i2="+shopaddr+"&i3="+shopphone+"&g1="+gtags[0]+"&g2="+gtags[1]+"&g3="+gtags[2]+"&r1="+rtags[0]+"&r2="+rtags[1]+"&r3="+rtags[2]+"&c1="+city;
 	    	newNode.appendChild(doc.createTextNode("Add"));
 	    	ul.parentNode.insertBefore(newNode, ul);
 	    } 
