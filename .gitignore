@@ -5,6 +5,9 @@ deps
 *.o
 *.beam
 *.plt
+mvc_client/.metadata
+mvc_client/mvcard_android/gen
+mvc_client/mvcard_android/bin
 rel/files
 rel/*.vbox
 rel/sales.veeka.com/test
