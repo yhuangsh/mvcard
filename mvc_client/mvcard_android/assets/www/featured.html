@@ -1,23 +1,20 @@
-<div data-role="page" id="deals_page">
+<div id="featured" data-role="page" data-add-back-btn="true">
 
-  <div data-role="header" data-id="header1" data-position="fixed">
-    <a href="account.html" data-icon="home">我的帐号</a>
-    <h1>无线购享</h1>
-    <a href="search.html" data-icon="search" data-iconpos="notext">search</a>
-  </div>
-
-  <div data-role="navbar">  
-    
-    <ul>
-      <li><a href="#">离我最近</a></li>
-      <li><a href="#">最新秒杀</a></li>
-      <li><a href="#">折扣最狠</a></li>
-      <li><a href="#">人气最旺</a></li>
-    </ul>
+  <div data-role="header" data-position="fixed">
+    <h1>今日特惠</h1>
+    <a class="city ui-btn-right" href="select_city.html" data-mini="true" data-icon="arrow-r" data-iconpos="right"></a>
+    <div data-role="navbar">  
+      <ul>
+	<li><a href="#">离我最近</a></li>
+	<li><a href="#">最新秒杀</a></li>
+	<li><a href="#">折扣最狠</a></li>
+	<li><a href="#">人气最旺</a></li>
+      </ul>
+    </div>
   </div>
 
   <div data-role="content">
-    <ul data-role="listview" data-inset="true">
+    <ul data-role="listview">
       <li><a href="deal_details.html">
 	  <img src="images/album-bb.jpg" />
 	  <h3>小南国</h3>
@@ -76,17 +73,6 @@
 	  <p>Arcade Fire</p>
       </a></li>
     </ul>
-  </div>
-  
-  <div data-role="footer" data-id="foot1" data-position="fixed">   
-    <div data-role="navbar" data-iconpos="top">
-      <ul>
-        <li><a href="#" data-icon="arrow-l" class="ui-btn-active ui-state-persist">最新特惠</a></li>
-        <li><a href="merchants.html" data-icon="arrow-l">加盟商家</a></li>
-        <li><a href="my_deals.html" data-icon="arrow-r">我的礼券</a></li>
-        <li><a href="my_orders.html" data-icon="arrow-r">我的消费</a></li>
-      </ul>
-    </div>
   </div>
   
 </div>​

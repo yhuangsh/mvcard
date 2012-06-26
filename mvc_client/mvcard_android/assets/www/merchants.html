@@ -1,74 +1,63 @@
-<div data-role="page">
+<div id="merchants" data-role="page" data-add-back-btn="true">
 
-  <div data-role="header" data-id="header1" data-position="fixed">
-    <a href="account.html" data-icon="home">我的帐号</a>
-    <h1>无线购享</h1>
-    <a href="search.html" data-icon="search" data-iconpos="notext">search</a>
+  <div data-role="header" data-position="fixed">
+    <h1>商户检索</h1>
+    <a class="city ui-btn-right" href="select_city.html" data-mini="true" data-icon="arrow-r" data-iconpos="right"></a>
+    <input class="merchant_search_input" type="search" value="输入商家名称或代码" data-inline="true" data-mini="true" data-theme="c"></input>
   </div>
 
-
-    <div data-role="collapsible" data-mini="true">
-      <h3>分类搜索：上海/陆家嘴/美食/本帮菜/人均100-300</h3>
-      <select data-mini="true">
-	<option>上海</option>
-	<option>北京</option>
-	<option>广州</option>
-	<option>重庆</option>
-      </select>
+  <div class="ui-grid-a ui-bar-a">
+    <div class="ui-block-a">
       <select data-mini="true">
 	<option>陆家嘴</option>
 	<option>淮海路</option>
       </select>
+    </div>
+    <div class="ui-block-b">
       <select data-mini="true">
-      	<option>美食</option>
-      	<option>按摩/SPA</option>
-      	<option>好长好长好长的电影名字</option>
-      </select>
-      <select data-mini="true">
-	<option>所有菜系</option>
-      	<option>川菜</option>
-      	<option>本帮菜</option>
-      	<option>日本菜</option>
-      </select>
-      <select data-mini="true">
-	<option>所有价位</option>
-      	<option>人均100</option>
-      	<option>人均100-300</option>
-      	<option>人均300-500</option>
-      	<option>人均500以上</option>
+	<option>美食</option>
+	<option>按摩/SPA</option>
+	<option>好长好长好长的电影名字</option>
       </select>
     </div>
+    <div class="ui-block-a">
+      <select data-mini="true">
+	<option>所有菜系</option>
+	<option>川菜</option>
+	<option>本帮菜</option>
+	<option>日本菜</option>
+	</select>
+    </div>
+    <div class="ui-block-b">
+      <select data-mini="true">
+	<option>所有价位</option>
+	<option>人均100</option>
+	<option>人均100-300</option>
+	<option>人均300-500</option>
+	<option>人均500以上</option>
+      </select>
+    </div>
+  </div>
 
   <div data-role="content">
     <ul data-role="listview">
-      <li><a href="deal_details.html">
+      <li><a href="mdetail.html">
 	  <img src="images/album-ag.jpg" />
 	  <h3>Ashes Grammar</h3>
 	  <p>A Sunny Day in Glasgow</p>
       </a></li>
-      <li><a href="#">
+      <li><a href="mdetail.html">
 	  <img src="images/album-k.jpg" />
 	  <h3>Hot Fuss</h3>
 	  <p>Killers</p>
       </a></li>
-      <li><a href="#">	
+      <li><a href="mdetail.html">	
 	  <img src="images/album-af.jpg" />
 	  <h3>The Suburbs</h3>
 	  <p>Arcade Fire</p>
       </a></li>
     </ul>
-      
-  </div>
-  
-  <div data-role="footer" data-id="foot1" data-position="fixed">   
-    <div data-role="navbar" data-iconpos="top">
-      <ul>
-        <li><a href="featured_deals.html" data-icon="arrow-l">最新特惠</a></li>
-        <li><a href="merchants.html" data-icon="arrow-l" class="ui-btn-active ui-state-persist">加盟商家</a></li>
-        <li><a href="my_deals.html" data-icon="arrow-r">我的礼券</a></li>
-        <li><a href="my_orders.html" data-icon="arrow-r">我的消费</a></li>
-      </ul>
-    </div>
+    
   </div>
   
 </div>​

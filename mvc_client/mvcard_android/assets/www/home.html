@@ -1,0 +1,79 @@
+<!DOCTYPE html> 
+<html> 
+  <head> 
+    <title>无线购享</title> 
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1"> 
+    <link rel="stylesheet" href="css/jquery.mobile-1.1.0.min.css" />
+    <link rel="stylesheet" href="css/mvc.css" />
+    <script src="js/jquery-1.7.2.min.js"></script>
+    <script src="js/jquery.mobile-1.1.0.min.js"></script>
+    <script src="js/cordova-1.8.1.js"></script>
+    <script src="js/barcodescanner.js"></script>
+    <script src="js/mvc.js"></script>
+  </head> 
+  
+  <body> 
+    <div id="home" data-role="page">
+
+      <div data-role="header" data-position="fixed">
+      	<a href="account.html">登陆/注册</a>
+      	<h1>无线购享</h1>
+      	<a class="city" href="select_city.html" data-mini="true" data-icon="arrow-r" data-iconpos="right"></a>
+      	<input class="merchant_search_input" type="search" value="输入商家名称或代码" data-mini="true" data-theme="c"></input>
+      </div>
+      
+      <div data-role="content">
+	<div class="ui-grid-a">
+	  <div class="ui-block-a">
+	    <a class="dashbox barcode_scanner_trigger" data-role="button" data-mini="true" >
+	      <img src="images/credit-cards.png"/>
+	      <br/>
+	      二维码买单</a>
+	  </div>
+	  <div class="ui-block-b">
+	    <a class="dashbox" data-role="button" href="#input_merchant_code" data-rel="dialog" data-mini="true">
+	      <img src="images/visa.png" />
+	      <br/>
+	      商家代码买单</a>
+	  </div>
+	  <div class="ui-block-a">
+	    <a class="dashbox" data-role="button" href="featured.html" data-mini="true">
+	      <img src="images/shopping-bag.png" />
+	      <br/>
+	      今日特惠</a>
+	  </div>
+
+	  <div class="ui-block-b">
+	    <a class="dashbox" data-role="button" href="merchants.html" data-mini="true">
+	      <img src="images/discount.png" />
+	      <br/>
+	      商家检索</a>
+	  </div>
+	  <div class="ui-block-a">
+	    <a class="dashbox" data-role="button" href="points.html" data-mini="true">
+	      <img src="images/cash.png" />
+	      <br/>
+	      我的积分</a>
+	  </div>
+	  <div class="ui-block-b">
+	    <a class="dashbox" data-role="button" href="saved.html" data-mini="true">
+	      <img src="images/service.png" />
+	      <br/>
+	      我的礼券</a>
+	  </div>
+	</div>
+      </div>
+    </div>
+
+    <div id="input_merchant_code" data-role="page" data-rel="dialog">
+      <div data-role="header">
+	<h1>输入商家代码</h1>
+      </div>
+      <div data-role="content">
+	<input type="text"/>
+	<a href="pay.html" data-role="button">输入</a>
+    </div>
+
+  </body>
+</html>
