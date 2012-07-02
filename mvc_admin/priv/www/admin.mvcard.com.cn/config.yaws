@@ -1,0 +1,16 @@
+<erl>
+
+out(A) ->
+    case yaws_api:queryvar(A, "callback") of
+	{ok, CallbackFn} ->
+	    { content, 
+	      "application/json",
+	      CallbackFn ++ "({" ++
+		  "config_server_url:\"http://admin.weilink.me/config.yaws\"," ++
+		  "security_server_url:\"http://security.weilink.me\"," ++
+		  "app_server_url:\"http://admin.weilink.me\"" ++ "})"};
+	_Else ->
+	    {content, "application/json", "{}"}
+    end.
+
+</erl>

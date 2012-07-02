@@ -1,0 +1,65 @@
+<erl>
+
+out(A) ->
+    {ok, LoginToken} = yaws_api:queryvar(A, "ltok"),
+    {ok, Amount} = yaws_api:queryvar(A, "amt"),
+    {ok, To} = yaws_api:queryvar(A, "to"),
+    
+    {content, "text/plain; charset=\"utf-8\"", place_order(LoginToken, list_to_integer(Amount), To)}.
+
+place_order(LoginToken, Amount, To) ->
+    PrivateKey = get_private_key_from_file("/home/huang/admin/etc/testmerchant.key"),
+    {{Y, M, D}, {H, Min, S}} = calendar:local_time(),
+    I9_SubmitTime = list_to_binary(lists:flatten(f("~4..0w~2..0w~2..0w~2..0w~2..0w~2..0w", [Y, M, D, H, Min, S]))),
+    I15_OrderId = I9_SubmitTime,
+    OrderDescription = list_to_binary(To),
+    I24_Amount = list_to_binary(lists:flatten(f("~12..0w", [Amount]))),
+    I25_Currency = <<"156">>,
+    I28_TerminalId = <<"01042900">>,
+    I32_MerchantId = <<"303290047228001">>,
+    I33_MerchantName = <<"商户仿真">>,
+
+    %% I9_SubmitTime = <<"20120626231136">>,
+    %% I15_OrderId = <<"00000508">>,
+    %% OrderDescription = <<"100块钱订单">>,
+    %% I24_Amount = <<"000000010000">>,
+    %% I25_Currency = <<"156">>,
+    %% I28_TerminalId = <<"01042900">>,
+    %% I32_MerchantId = <<"303290047228001">>,
+    %% I33_MerchantName = <<"商户仿真">>,
+    %% signature = 1a62117873715f40c026e5e292a031f1adcc7559e8b45e961947f788261c3da46cf1fbae442a42b7b39c0e258c0ca432c23d0dc38590e118ecc0d84ac16c959441473da78f96288040d14af906e8c26d86a763fc9eb1a8dfd528a1701a05f4f847ee8e29afc07f2a7d519c897a25e9a92d5d3dd839df4d9ba2ebca30c0855fa6
+
+    DataToSign = <<I9_SubmitTime/binary,
+		   I15_OrderId/binary, 
+		   I24_Amount/binary,
+		   I25_Currency/binary,
+		   I28_TerminalId/binary,
+		   I32_MerchantId/binary,
+		   I33_MerchantName/binary>>,
+    Signature = public_key:sign(DataToSign, 'sha', PrivateKey),
+    SignatureInt = crypto:erlint(<<0,0,0,128, Signature/binary>>),
+    SignatureHex = list_to_binary(io_lib:format("~.16b", [SignatureInt])),
+
+    OrderXML = 
+	<<"<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>"
+	  "<cupMobiles>"
+	  "<cupMobile version=\"1.01\" application=\"All\">"
+	  "<transaction type=\"Purchase.MARsp\">"
+	  "<submitTime>", I9_SubmitTime/binary, "</submitTime>"
+	  "<order id=\"", I15_OrderId/binary, "\">", OrderDescription/binary, "</order>"
+	  "<transAmount currency=\"", I25_Currency/binary, "\">", I24_Amount/binary, "</transAmount>"
+	  "<terminal id=\"", I28_TerminalId/binary, "\"/>"
+	  "<merchant name=\"", I33_MerchantName/binary, "\" id=\"", I32_MerchantId/binary, "\"/>"
+	  "</transaction>"
+	  "<senderSignature>", SignatureHex/binary, "</senderSignature>"
+	  "</cupMobile>"
+	  "</cupMobiles>">>,
+
+    OrderXML.
+
+get_private_key_from_file(KeyFile) ->
+    {ok, PemBin} = file:read_file(KeyFile),
+    [{_, PrivateKeyDER, _}] = public_key:pem_decode(PemBin),
+    public_key:der_decode('RSAPrivateKey', PrivateKeyDER).
+
+</erl>
