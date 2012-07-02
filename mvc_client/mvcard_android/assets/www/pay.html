@@ -1,4 +1,4 @@
-<div data-role="page" data-add-back-btn="true">
+<div id="pay" data-role="page" data-add-back-btn="true">
 
   <div data-role="header"  data-position="fixed">
     <h1>买单</h1>
@@ -13,7 +13,7 @@
       <li><a href="scan_merchant_code.html">重新扫描商家二维码</a></li>
       <li><a ref="enter_merchant_code.html">重新手工输入验证码</a></li>
       <li data-role="list-divider">输入本次消费金额</li>
-      <li><input type="text" name="name" id="amount" value=""/></li>
+      <li><input type="number" name="name" id="amount" value=""/></li>
       <li data-role="list-divider">确认使用礼券</li>
       <li><p>商户礼券详情，blah, blah, blah, blah, blah, blah, blah, blah, blah, blah, blah,
  	  blah, blah, blah, blah, blah, blah,</p>
@@ -32,7 +32,7 @@
     </ul>
     
     <ul data-role="listview" data-inset="true">
-      <li><a href="pay_ok.html">使用银联支付</a></li>
+      <li><a class="start_uppay">使用银联支付</a></li>
       <li><a href="pay_ok.html">使用支付宝支付</a></li>
     </ul>
     
