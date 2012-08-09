@@ -1,0 +1,45 @@
+<!DOCTYPE html> 
+
+<erl>
+
+%% AJAX request only
+out(A) -> out(qb_html:is_ajax_req(A), A).
+out(false, A) ->  {redirect_local, qb_url:index()};
+out(true, A) -> 
+    Vars = yaws_api:parse_query(A),
+    Title1 = proplists:get_value("t1", Vars, "出错了"),
+    Title2 = proplists:get_value("t2", Vars, "出错原因"),
+    Msg = proplists:get_value("m", Vars, "未知原因"),
+    BtnTxt = proplists:get_value("b", Vars, "返回"),
+    Cb = proplists:get_value("cb", Vars, qb_url:home()),
+    {ehtml, page(Title1, Title2, Msg, BtnTxt, Cb)}.
+
+page(Title1, Title2, Msg, BtnTxt, Cb) ->
+    {'div', [{'data-role', "page"}],
+     [
+      page_header(Title1),
+      page_content(Title2, Msg, BtnTxt, Cb)
+     ]}.
+
+page_header(Title) ->
+    {'div', [{'data-role', "header"}, {'data-position', "fixed"}],
+     [
+      qb_html:a_home(),
+      {h1, [], Title}
+     ]
+    }.
+
+page_content(Title, Msg, BtnTxt, Cb) -> {'div', [{'data-role', "content"}], ul_error_reason(Title, Msg, BtnTxt, Cb)}.
+
+ul_error_reason(Title, Msg, BtnTxt, Cb) ->
+     {ul, [{'data-role', "listview"}, {'data-inset', "true"}],
+      [
+       qb_html:li_divider(Title),
+       li_reason(Msg),
+       li_return(BtnTxt, Cb)
+      ]}.
+
+li_reason(Msg) -> {li, [], {p, [], Msg}}.
+li_return(BtnTxt, Cb) -> {li, [], {a, [{href, Cb}], BtnTxt}}.
+
+</erl>

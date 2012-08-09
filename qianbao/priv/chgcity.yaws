@@ -1,0 +1,29 @@
+<!DOCTYPE html> 
+
+<erl>
+
+-include("qb.hrl").
+
+tag() -> "chgcity.yaws".
+
+out(A) -> out(qb_html:is_ajax_req(A), A).
+out(false, A) -> {redirect_local, qb_url:index()};
+out(true, A) -> 
+    qb_debug:d(tag(), "ajax call"),
+    out_1(queryvar(A, "city"), yaws_api:find_cookie_val(qb_session:cookie_name(), (A#arg.headers)#headers.cookie)).
+
+out_1(undefined, _) -> 
+    qb_debug:d(tag(), "city= not found"),
+    {redirect_local, qb_url:index()};
+out_1({ok, City}, []) -> 
+    qb_debug:d(tag(), "city=~p", [City]),
+    {redirect_local, qb_url:index(qb_url:home(City))};
+out_1({ok, City}, SessionId) -> out_2(City, qb_session:get(SessionId)).
+
+out_2(City, undefined) -> {redirect_local, qb_url:index()};
+out_2(City, Session) -> 
+    qb_debug:d(tag(), "session=~p", [Session]),
+    qb_session:update(Session#qbs{city=City}),
+    {redirect_local, qb_url:index()}.
+
+</erl>

@@ -1,0 +1,39 @@
+<!DOCTYPE html> 
+
+<erl>
+
+out(A) -> out(qb_html:is_ajax_req(A), A).
+out(false, A) -> {redirect_local, qb_url:index()};
+out(true, A) -> out_1(queryvar(A, "city")).
+
+out_1(undefined) -> {redirect_local, qb_url:index()};
+out_1({ok, City}) -> {ehtml, page(City)}.
+
+page(City) ->
+    {'div', [{'data-role', "page"}],
+     [
+      page_header(City),
+      page_content()
+     ]}.
+
+page_header(City) ->
+    {'div', [{'data-role', "header"}, {'data-position', "fixed"}],
+     [
+      qb_html:a_home(City),
+      {h1, [], "选择城市"}
+     ]
+    }.
+
+page_content() ->
+    {'div', [{'data-role', "content"}],
+     {ul, [{'data-role', "listview"}, {'data-filter', "true"}],
+      city_list()
+     }
+    }.
+
+city_list() ->
+    CityList = ["上海", "北京", "重庆"],
+    [{li, [], {a, [{href, qb_url:change_city(City)}], City}} || City <- CityList].
+
+
+</erl>

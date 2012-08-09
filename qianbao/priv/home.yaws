@@ -1,0 +1,164 @@
+<!DOCTYPE html> 
+
+<erl>
+
+-include("qb.hrl").
+
+tag() -> "home.yaws".
+
+out(A) -> out(qb_html:is_ajax_req(A), A).
+out(false, A) -> {redirect_local, qb_url:index()};
+out(true, A) ->  
+    qb_debug:d(tag(), "ajax call"),
+    out_1(yaws_api:find_cookie_val(qb_session:cookie_name(), (A#arg.headers)#headers.cookie), A).
+out_1([], A) -> out_new_session(A);
+out_1(SessionId, A) -> out_resume_session(SessionId, A).
+
+out_new_session(A) -> out_new_session_1(queryvar(A, "city")).
+out_new_session_1(undefined) -> out_new_session_1({ok, qb_config:default_city()});
+out_new_session_1({ok, City}) -> out_new_session_1(qb_config:is_valid_city(City), City).
+out_new_session_1(false, City) -> {redirect_local, qb_url:index(qb_url:home(qb_config:default_city()))};
+out_new_session_1(true, City) ->  {ehtml, page(City)}.
+
+out_resume_session(SessionId, A) -> 
+    qb_debug:d(tag(), "resuming session, session id = ~s", [SessionId]),
+    out_resume_session_1(qb_session:get(SessionId)).
+out_resume_session_1(undefined) -> [{redirect_local, qb_url:index(qb_url:home(qb_config:default_city()))}, yaws_api:setcookie(qb_session:cookie_name(), "")];
+out_resume_session_1(#qbs{uid=UserId, city=City}) -> out_resume_session_2(UserId, City).
+out_resume_session_2(UserId, undefined) -> out_resume_session_2(UserId, qb_config:default_city());
+out_resume_session_2(UserId, City) -> {ehtml, page(UserId, City)}.
+
+page(City) -> page(undefined, City).
+page(UserId, City) ->
+    {'div', [{id, "home-page"}, {'data-role', "page"}],
+     [
+      page_header(UserId, City),
+      page_content()
+     ]}.
+
+page_header(UserId, City) ->
+    {'div', [{'data-role', "header"}, {'data-position', "fixed"}],
+     [
+      button1(UserId),
+      title(),
+      button2(City),
+      search1()
+     ]}.
+
+button1(undefined) -> {a, [{href, qb_url:login()}], "登陆/注册"};
+button1(UserId) -> {a, [{href, qb_url:account(UserId)}], "我的帐号"}.
+title() -> {h1, [], "钱宝"}.
+button2(City) -> 
+    qb_debug:d(tag(), "city=~p", [City]),
+    {a, [{href, qb_url:select_city(City)}, {'data-mini', "true"}, {'data-icon', "arrow-r"}, {'data-iconpos', "right"}], City}.
+search1() -> {input, [{type, "search"}, {value, "输入商家名称或代码"}, {'data-mini', "true"}, {'data-theme', "c"}]}.
+    
+page_content() ->
+    {'div', [{'data-role', "content"}],  
+     grid_a()}.
+
+grid_a() ->
+    {'div', [{class, "ui-grid-a"}],
+     [
+      cell_0_a(),
+      cell_0_b(),
+      cell_1_a(),
+      cell_1_b(),
+      cell_2_a(),
+      cell_2_b()
+     ]}.
+
+cell_0_a() ->
+    {'div', [{class, "ui-block-a"}],
+     [
+      {a, [{href, qb_url:barcode_scan("http://admin.weilink.me:8000/qianbao/merchant.yaws")},
+	   {'data-role', "button"}, {'data-mini', "true"}],
+       [
+	{img, [{src, "images/credit-cards.png"}]},
+	{br},
+	"二维码买单"
+       ]}
+     ]}.
+    
+cell_0_b() ->
+    {'div', [{class, "ui-block-b"}],
+     [
+      {a, [{id, "input_merchant_code"}, {'data-role', "button"}, {href, "#"}, {'data-rel', "dialog"}, {'data-mini', "true"}],
+       [
+	{img, [{src, "images/visa.png"}]},
+	{br},
+	"商家代码买单"
+       ]}
+     ]}.
+    
+cell_1_a() ->
+    {'div', [{class, "ui-block-a"}],
+     [
+      {a, [{'data-role', "button"}, {href, "featured.html"}, {'data-mini', "true"}],
+       [
+	{img, [{src, "images/shopping-bag.png"}]},
+	{br},
+	"今日特惠"
+       ]}
+     ]}.
+    
+cell_1_b() ->
+    {'div', [{class, "ui-block-b"}],
+     [
+      {a, [{'data-role', "button"}, {href, "merchants.html"}, {'data-mini', "true"}],
+       [
+	{img, [{src, "images/discount.png"}]},
+	{br},
+	"商家检索"
+       ]}
+     ]}.
+    
+cell_2_a() ->
+    {'div', [{class, "ui-block-a"}],
+     [
+      {a, [{'data-role', "button"}, {href, "points.html"}, {'data-mini', "true"}],
+       [
+	{img, [{src, "images/cash.png"}]},
+	{br},
+	"我的积分"
+       ]}
+     ]}.
+
+cell_2_b() ->
+    {'div', [{class, "ui-block-b"}],
+     [
+      {a, [{'data-role', "button"}, {href, "saved.html"}, {'data-mini', "true"}],
+       [
+	{img, [{src, "images/service.png"}]},
+	{br},
+	"我的礼券"
+       ]}
+     ]}.
+
+
+%% /index.yaws? city= & lat= & long=&
+%%     cookie = scrambled user id, server can recover real user id and device is needs login, 
+%%              if absent, system will direct other page to login UI as needed 
+%%              system may ask for login credential is certain security condition are met
+%%              in short it identifies a previously logged in user, but does not gurantee full access without login again
+%%              system assign one to a user that system sees as no previous session. 
+%%              same user may be assigned to different "cookie" value across sessions
+%%     city = default city, if not present, system will decide based on lat/long or ip
+%%     lat = latitude from device
+%%     long = longtitude from device
+%% show main UI page
+%% 
+%% /merchant.yaws? city= & mid=
+%%     cookie = same as above
+%%     city = current city
+%%     mid = merchant id, either obtained from barcode, from user input, or from browsing merchant page
+%% show merchant detail page for one single merchant
+%% 
+%% /checkin.yaws? city= & mid= & next=
+%%     cookie = same as above
+%%     city = same as /merchant.yaws
+%%     mid = same as /merchant.yaws
+%%     next = 
+%% show checkin ok/fail page 
+
+</erl>

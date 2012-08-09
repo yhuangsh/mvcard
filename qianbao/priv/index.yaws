@@ -1,0 +1,22 @@
+<!DOCTYPE html> 
+
+<erl>
+
+-include("qb.hrl").
+
+out(A) -> out_1(queryvar(A, "g")).
+out_1(undefined) -> ehtml("/home.yaws");
+out_1({ok, Url}) -> ehtml(Url).
+
+ehtml(Url) -> 
+    {ehtml, 
+     {html, [], 
+      [qb_html:head(), 
+       {body, [], 
+	{script, [{type, "text/javascript"}], 
+	 "$(document).ready(function() { $.mobile.changePage(\"" ++ Url ++ "\"); });"}
+       }
+      ]}
+    }.
+
+</erl>

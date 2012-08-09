@@ -1,0 +1,21 @@
+<!DOCTYPE html> 
+
+<erl>
+
+%% AJAX request only
+out(A) -> out(qb_html:is_ajax_req(A), A).
+out(false, A) ->  {redirect_local, qb_url:index()};
+out(true, A) -> out_1(queryvar(A, "u"), queryvar(A, "p"), queryvar(A, "cb"), queryvar(A, "cb2")).
+
+%% Get Callback url
+out_1({ok, U}, {ok, P}, {ok, CbOk}, {ok, CbNok}) -> out_2(qb_session:login(U, P), CbOk, CbNok);
+out_1(_, _, _, _) -> {redirect_local, qb_url:index()}.
+
+%% Login success
+out_2({ok, SessionId}, CbOk, _) -> [{redirect, CbOk}, yaws_api:setcookie(qb_session:cookie_name(), SessionId)];
+out_2({nok, Reason}, CbOk, CbNok) ->  {redirect, make_error_url(CbOk, Reason, CbNok)}.
+
+make_error_url(_CbOk, Reason, CbNok) ->		%TODO: use different texts for differen CbOk
+    qb_url:error("登录失败", "原因", Reason, "重新登录", CbNok).
+
+</erl>

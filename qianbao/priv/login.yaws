@@ -1,0 +1,68 @@
+<!DOCTYPE html> 
+
+<erl>
+
+%% AJAX request only
+out(A) -> out(qb_html:is_ajax_req(A), A).
+out(false, A) ->  {redirect_local, qb_url:index()};
+out(true, A) -> out_1(queryvar(A, "cb"), A).
+
+%% Get Callback url
+out_1(undefined, A) -> {ehtml, page(qb_url:home(), qb_url:this(A))};
+out_1({ok, CbOk}, A) -> {ehtml, page(CbOk, qb_url:this(A))}.
+    
+page(CbOk, CbNok) ->
+    {'div', [{id, "login-page"}, {'data-role', "page"}],
+     [
+      page_header(),
+      page_content(CbOk, CbNok)
+     ]}.
+
+page_header() ->
+    {'div', [{'data-role', "header"}, {'data-position', "fixed"}],
+     [
+      qb_html:a_home(),
+      {h1, [], "登录"}
+     ]
+    }.
+
+page_content(CbOk, CbNok) ->
+    {'div', [{'data-role', "content"}],
+     [
+      ul_login(CbOk, CbNok),
+      ul_register(CbOk)
+     ]}.
+
+ul_login(CbOk, CbNok) ->
+     {ul, [{'data-role', "listview"}, {'data-inset', "true"}],
+      [
+       qb_html:li_divider("用户名"),
+       li_user_name_input(),
+       qb_html:li_divider("密码"),
+       li_password_input(),
+       li_login(CbOk, CbNok)
+      ]}.
+
+ul_register(Cb) ->
+    {ul, [{'data-role', "listview"}, {'data-inset', "true"}],
+     [
+      qb_html:li_divider("还没有万维通帐号"),
+      li_register(Cb)
+     ]}.
+
+li_user_name_input() -> {li, [], {input, [{name, "u"}, {type, "text"}]}}.
+
+li_password_input() ->  {li, [], {input, [{name, "p"}, {type, "password"}]}}.
+
+li_login(CbOk, CbNok) ->
+    {li, [], 
+     [
+      {input, [{type, "hidden"}, {name, "cb"}, {value, CbOk}]},
+      {input, [{type, "hidden"}, {name, "cb2"}, {value, CbNok}]},
+      {a, [{id, "login_button"}, {href, "#"}], "登录"}
+     ]
+    }.
+
+li_register(CB) -> {li, [], {a, [{href, qb_url:register(CB)}], "免费注册"}}.
+
+</erl>

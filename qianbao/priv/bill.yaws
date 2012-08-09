@@ -1,0 +1,142 @@
+<!DOCTYPE html> 
+
+<erl>
+
+-include("qb.hrl").
+
+%% AJAX request only
+out(A) -> out(qb_html:is_ajax_req(A), A).
+out(false, A) ->  {redirect_local, qb_url:index()};
+out(true, A) -> out_1(A).
+
+%% Is session id present as cookie?
+out_1(A) -> out_1(yaws_api:find_cookie_val(qb_session:cookie_name(), (A#arg.headers)#headers.cookie), A).
+out_1([], A) ->  {redirect_local, qb_url:login(qb_url:this(A))};
+out_1(SessionId, A) -> out_2(qb_session:get(SessionId), A).
+
+%% Session id must be valid
+out_2(undefined, A) -> {redirect_local, qb_url:login(qb_url:this(A))};
+out_2(Session, A) -> out_3(Session, queryvar(A, "m")).
+
+%% Merchant id "m=" must exist
+out_3(_, undefined) -> {redirect_local, qb_url:error("没有指定商家", qb_url:home())};
+out_3(#qbs{uid=UserId}, {ok, MerchantId}) -> out_4(UserId, qb_merchant:get(MerchantId)).
+
+%% Merchant id must be valid
+out_4(UserId, undefined) -> {redirect_local, qb_url:error("找不到指定的商家", qb_url:home())};
+out_4(UserId, #qbm{id=MerchantId}) -> out_5(qb_trans:new(UserId, MerchantId)).
+    
+%% Initiate transaction
+out_5(undefined) -> {redirect_local, qb_url:error("未能启动交易", qb_url:home())};
+out_5(T) ->  {ehtml, page(T)}.
+    
+page(T) ->
+    {'div', [{'data-role', "page"}],
+     [
+      page_header(),
+      page_content(T)
+     ]}.
+
+page_header() ->
+    {'div', [{'data-role', "header"}, {'data-position', "fixed"}],
+     [
+      qb_html:a_home(),
+      {h1, [], "买单"}
+     ]
+    }.
+
+page_content(T) ->
+    {'div', [{'data-role', "content"}],
+     [
+      ul_bill_sheet(T),
+      ul_payment_options()
+     ]}.
+
+ul_bill_sheet(T) ->
+    U = qb_user:get(T#qbt.uid),
+    {ul, [{'data-role', "listview"}, {'data-inset', "true"}],
+     [
+      li_divider("交易代码"),
+      {li, [], T#qbt.id},
+      li_divider("确认商家"),
+      li_merchant_info(qb_merchant:get(T#qbt.mid)),
+      li_divider("消费金额"),
+      li_billed_amount_input(),
+      li_divider("使用优惠"),
+      li_promo(qb_promo:get(T#qbt.mid, undefined), qb_promo:get(T#qbt.mid, T#qbt.uid)),
+      li_divider("使用积分"),
+      li_use_points(U#qbu.pts),
+      li_divider("消费明细"),
+      li_summary()
+     ]}.
+
+ul_payment_options() ->
+    {ul, [{'data-role', "listview"}, {'data-inset', "true"}],
+     [li_divider("万维通密码"),
+      li_password_input(),
+      li_pay()
+     ]}.
+
+li_divider(Text) -> {li, [{'data-role', "list_divider"}], Text}.
+
+li_merchant_info(M) ->
+    {li, [], 
+     ["商家代码:" ++ M#qbm.id, {br},
+      "商家名称:" ++ M#qbm.name, {br},
+      "商家地址:" ++ M#qbm.addr, {br},
+      io_lib:format("商家返点: 实际消费的~p%", [M#qbm.rebate*100])
+     ]}.
+
+li_billed_amount_input() ->
+    {li, [],
+     {input, [{type, "number"}, {value, "0.00"}]}
+    }.
+
+li_promo(undefined, undefined) -> li_promo([], []);
+li_promo(undefined, PromoForUser) -> li_promo([], PromoForUser);
+li_promo(PromoForAll, undefined) -> li_promo(PromoForAll, []);
+li_promo(PromoForAll, PromoForUser) ->
+    Opts1 = lists:map(
+	      fun(#qbp{value=Value, desc=Desc}) ->
+		      {option, [{value, Value}], "(专属) " ++ Desc}
+	      end, PromoForUser),
+    Opts2 = lists:map(
+	      fun(#qbp{value=Value, desc=Desc}) ->
+		      {option, [{value, Value}], Desc}
+	      end, PromoForAll),
+
+    {li, [],
+     {select, [], 
+      [{option, [{value, 0}], "不使用"}] ++ Opts1 ++ Opts2
+     }
+    }.
+
+li_use_points(Points) ->
+    {li, [],
+     {label, [],
+      [
+       {input, [{type, "checkbox"}, {checked, "checked"}]},
+       lists:flatten(io_lib:format("最多~p", [Points]))
+      ]}
+    }.
+
+li_summary() ->
+    {li, [],
+     [{p, [], "账单金额:"},
+      {p, [], "优惠抵扣:"},
+      {p, [], "积分抵扣:"},
+      {p, [], "实际支付:"},
+      {p, [], "获得积分:"}
+     ]}.
+
+li_password_input() ->
+    {li, [],
+     {input, [{type, "password"}]}
+    }.
+
+li_pay() ->
+    {li, [], 
+     {a, [{href, "#"}], "付款"}
+    }.
+
+</erl>
