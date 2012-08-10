@@ -9,6 +9,7 @@ head() ->
       {meta, [{'http-equiv', "Content-Type"}, {content, "text/html; charset=utf-8"}]},
       {meta, [{name, "viewport"}, {content, "width=device-width, initial-scale=1"}]},
       css("css/jquery.mobile-1.1.1.min.css"),
+      css("css/qianbao.css"),
       js("js/cordova-2.0.0.js"),
       js("js/jquery-1.7.2.min.js"),
       js("js/jquery.mobile-1.1.1.min.js"),

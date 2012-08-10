@@ -4,6 +4,8 @@
 
 -include("qb.hrl").
 
+tag() -> "bill.yaws".
+
 %% AJAX request only
 out(A) -> out(qb_html:is_ajax_req(A), A).
 out(false, A) ->  {redirect_local, qb_url:index()};
@@ -31,7 +33,8 @@ out_5(undefined) -> {redirect_local, qb_url:error("未能启动交易", qb_url:h
 out_5(T) ->  {ehtml, page(T)}.
     
 page(T) ->
-    {'div', [{'data-role', "page"}],
+    qb_debug:d(tag(), "start building bill page"),
+    {'div', [{id, "bill-page"} ,{'data-role', "page"}],
      [
       page_header(),
       page_content(T)
@@ -57,7 +60,10 @@ ul_bill_sheet(T) ->
     {ul, [{'data-role', "listview"}, {'data-inset', "true"}],
      [
       li_divider("交易代码"),
-      {li, [], T#qbt.id},
+      {li, [], 
+       [T#qbt.id,
+	{input, [{type, "hidden"}, {name, "tid"}, {value, T#qbt.id}]}
+       ]},
       li_divider("确认商家"),
       li_merchant_info(qb_merchant:get(T#qbt.mid)),
       li_divider("消费金额"),
@@ -81,33 +87,40 @@ li_divider(Text) -> {li, [{'data-role', "list_divider"}], Text}.
 
 li_merchant_info(M) ->
     {li, [], 
-     ["商家代码:" ++ M#qbm.id, {br},
-      "商家名称:" ++ M#qbm.name, {br},
-      "商家地址:" ++ M#qbm.addr, {br},
-      io_lib:format("商家返点: 实际消费的~p%", [M#qbm.rebate*100])
+     [M#qbm.name, {br},
+      M#qbm.addr, {br},
+      lists:flatten(io_lib:format("返点: 实际消费的~p%", [M#qbm.rebate*100])),
+      {input, [{type, "hidden"}, {name, "rebate"}, {value, M#qbm.rebate}]}
      ]}.
 
-li_billed_amount_input() ->
-    {li, [],
-     {input, [{type, "number"}, {value, "0.00"}]}
-    }.
+li_billed_amount_input() -> 
+    {li, [], 
+     [
+      {input, [{type, "number"}, {name, "amt0"}, {value, "0.00"}]}
+%      {input, [{type, "hidden"}, {name, "pid"}]},
+%      {input, [{type, "hidden"}, {name, "promo_discnt"}]},
+%      {input, [{type, "hidden"}, {name, "pts_used"}]},
+%      {input, [{type, "hidden"}, {name, "amt_actual"}]},
+%      {input, [{type, "hidden"}, {name, "pts_earned"}]}
+     ]}.
 
 li_promo(undefined, undefined) -> li_promo([], []);
 li_promo(undefined, PromoForUser) -> li_promo([], PromoForUser);
 li_promo(PromoForAll, undefined) -> li_promo(PromoForAll, []);
 li_promo(PromoForAll, PromoForUser) ->
+    qb_debug:d(tag(), "building promo list"),
     Opts1 = lists:map(
-	      fun(#qbp{value=Value, desc=Desc}) ->
-		      {option, [{value, Value}], "(专属) " ++ Desc}
+	      fun(#qbp{pid=Pid, value=Value, desc=Desc}) ->
+		      {option, [{value, lists:flatten(io_lib:format("~s|~p", [Pid, Value]))}], "(专属) " ++ Desc}
 	      end, PromoForUser),
     Opts2 = lists:map(
-	      fun(#qbp{value=Value, desc=Desc}) ->
-		      {option, [{value, Value}], Desc}
+	      fun(#qbp{pid=Pid, value=Value, desc=Desc}) ->
+		      {option, [{value, lists:flatten(io_lib:format("~s|~p", [Pid, Value]))}], Desc}
 	      end, PromoForAll),
-
+    qb_debug:d(tag(), "done building promo list"),
     {li, [],
-     {select, [], 
-      [{option, [{value, 0}], "不使用"}] ++ Opts1 ++ Opts2
+     {select, [{id, "sel-promos"}], 
+      [{option, [{value, "undefined|0"}], "不使用"}] ++ Opts1 ++ Opts2
      }
     }.
 
@@ -115,28 +128,17 @@ li_use_points(Points) ->
     {li, [],
      {label, [],
       [
-       {input, [{type, "checkbox"}, {checked, "checked"}]},
-       lists:flatten(io_lib:format("最多~p", [Points]))
+       {input, [{type, "checkbox"}, {name, "if-use-points"}, {checked, "checked"}]},
+       lists:flatten(io_lib:format("最多~p分", [Points])),
+       {input, [{type, "hidden"}, {name, "points"}, {value, Points/10}]}
       ]}
     }.
 
-li_summary() ->
-    {li, [],
-     [{p, [], "账单金额:"},
-      {p, [], "优惠抵扣:"},
-      {p, [], "积分抵扣:"},
-      {p, [], "实际支付:"},
-      {p, [], "获得积分:"}
-     ]}.
+li_summary() -> {li, [{id, "li-bill-summary"}]}.
 
-li_password_input() ->
-    {li, [],
-     {input, [{type, "password"}]}
-    }.
+li_password_input() -> {li, [], {input, [{type, "password"}, {name, "pwd"}]}}.
 
-li_pay() ->
-    {li, [], 
-     {a, [{href, "#"}], "付款"}
-    }.
+li_pay() -> {li, [], {a, [{id, "a-pay-button"}, {href, "#"}], "付款"}}.
 
+% /pay.yaws?tid, pwd, amt0,pid, promo_discnt, pts_used, amt_actual, pts_earned 
 </erl>
