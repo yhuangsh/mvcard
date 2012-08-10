@@ -71,7 +71,7 @@ grid_a() ->
 cell_0_a() ->
     {'div', [{class, "ui-block-a"}],
      [
-      {a, [{href, qb_url:barcode_scan("http://admin.weilink.me:8000/qianbao/bill.yaws")},
+      {a, [{id, "a-scan-button"}, {href, "#"}, %qb_url:barcode_scan("http://admin.weilink.me:8000/qianbao/bill.yaws")},
 	   {'data-role', "button"}, {'data-mini', "true"}],
        [
 	{img, [{src, "images/credit-cards.png"}]},
