@@ -11,7 +11,19 @@ out_1({ok, Url}) -> ehtml(Url).
 ehtml(Url) -> 
     {ehtml, 
      {html, [], 
-      [qb_html:head(), 
+      [
+       {head, [], 
+	[{title, [], "钱宝"},
+	 {meta, [{'http-equiv', "Content-Type"}, {content, "text/html; charset=utf-8"}]},
+	 {meta, [{name, "viewport"}, {content, "width=device-width, initial-scale=1"}]},
+	 qb_html:css("css/jquery.mobile-1.1.1.min.css"),
+	 qb_html:css("css/qianbao.css"),
+	 qb_html:js("js/cordova-2.0.0.js"),
+	 qb_html:js("js/jquery-1.7.2.min.js"),
+	 qb_html:js("js/jquery.mobile-1.1.1.min.js"),
+	 qb_html:js("js/barcodescanner.js"),
+	 qb_html:js("js/qianbao.js")
+	]}, 
        {body, [], 
 	{script, [{type, "text/javascript"}], 
 	 "$(document).ready(function() { $.mobile.changePage(\"" ++ Url ++ "\"); });"}
