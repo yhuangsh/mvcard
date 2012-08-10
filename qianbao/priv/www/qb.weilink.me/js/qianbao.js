@@ -119,6 +119,38 @@ QB.pay_button_handler = function(e) {
     }
 };
 
+QB.scan_bill = function(e) {
+    alert("to scan");
+    $.mobile.changePage("/bill.yaws?m="+encodeURIComponent("003")+"&a="+encodeURIComponent("500.00"));
+    return;
+    window.plugins.barcodeScanner.scan( 
+    	function(result) {
+	    if (!result.cancelled) {
+		if (result.format == "QR_CODE") {
+		    var ret = result.text.split("|");
+		    if (ret.length == 1) {
+			//alert("m="+ret[0]);
+			$.mobile.changePage("/bill.yaws?m="+encodeURIComponent(ret[0]));
+		    } else if (ret.length == 2) {
+			//alert("m="+ret[0]+" a="+ret[1]);
+			$.mobile.changePage("/bill.yaws?m="+encodeURIComponent(ret[0])+"&a="+encodeURIComponent(ret[1]));
+		    } else {
+			alert("wrong format = "+result.text);
+		    }
+		} else {
+		    alert("not a QR CODE = "+result.format);
+		}
+	    } else {
+    		alert("scan cannceled");
+	    }
+//    	    $.mobile.changePage("pay.html");
+    	}, 
+    	function(error) {
+    	    alert("Scanning failed: " + error);
+    	}
+    );
+};
+
 $(document).on(
     "pageinit",
     "#home-page",
@@ -128,6 +160,7 @@ $(document).on(
 	    if (m != null && m != "")
 		$.mobile.changePage("/bill.yaws?m="+encodeURIComponent(m));
 	});
+	$("a#a-scan-button").click(QB.scan_bill);
     }
 );
 
@@ -140,7 +173,7 @@ $(document).on(
 	    var p = $("input[name=p]").val();
 	    var cb = $("input[name=cb]").val();
 	    var cb2 = $("input[name=cb2]").val();
-	    $.mobile.changePage("/auth.yaws?u="+u+"&p="+p+"&cb="+cb+"&cb2="+cb2);
+	    $.mobile.changePage("/auth.yaws?u="+encodeURIComponent(u)+"&p="+encodeURIComponent(p)+"&cb="+encodeURIComponent(cb)+"&cb2="+encodeURIComponent(cb2));
 	});
     }
 );
