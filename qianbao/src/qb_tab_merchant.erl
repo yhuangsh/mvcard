@@ -11,7 +11,7 @@ init() ->
     init_rows().
 
 init_tab() ->
-    {atomic, ok} = mnesia:create_table(tab(), [{attributes, record_info(fields, qbm)}, {record_name, qbm}]).
+    {atomic, ok} = mnesia:create_table(tab(), [{attributes, record_info(fields, qbm)}, {record_name, qbm}, {disc_copies, [node()]}]).
 
 init_rows() ->
     ok = mnesia:dirty_write(tab(), #qbm{id="001", name="小南国", addr="浦东新区陆家嘴西路168号正大广场9楼", rebate=0.5}),

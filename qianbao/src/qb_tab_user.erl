@@ -11,7 +11,7 @@ init() ->
     init_rows().
 
 init_tab() ->
-    {atomic, ok} = mnesia:create_table(tab(), [{attributes, record_info(fields, qbu)}, {record_name, qbu}]).
+    {atomic, ok} = mnesia:create_table(tab(), [{attributes, record_info(fields, qbu)}, {record_name, qbu}, {disc_copies, [node()]}]).
 
 init_rows() ->
     ok = mnesia:dirty_write(tab(), #qbu{id="joe", pwd="12345", pts=2000}),

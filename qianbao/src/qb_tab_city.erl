@@ -11,7 +11,7 @@ init() ->
     init_rows().
 
 init_tab() ->
-    {atomic, ok} = mnesia:create_table(tab(), [{attributes, record_info(fields, qbc)}, {record_name, qbc}]).
+    {atomic, ok} = mnesia:create_table(tab(), [{attributes, record_info(fields, qbc)}, {record_name, qbc}, {disc_copies, [node()]}]).
 
 init_rows() ->
     ok = mnesia:dirty_write(tab(), #qbc{city="北京", dummy=0}),

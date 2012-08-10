@@ -15,7 +15,7 @@ init() ->
     init_tab().
 
 init_tab() ->
-    mnesia:create_table(tab(), [{attributes, record_info(fields, qbt)}, {record_name, qbt}]).
+    mnesia:create_table(tab(), [{attributes, record_info(fields, qbt)}, {record_name, qbt}, {disc_copies, [node()]}]).
 
 create(TransId, UserId, MerchantId) ->
     T = #qbt{id=TransId, state=initiated, uid=UserId, mid=MerchantId},
