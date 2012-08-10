@@ -71,7 +71,7 @@ grid_a() ->
 cell_0_a() ->
     {'div', [{class, "ui-block-a"}],
      [
-      {a, [{href, qb_url:barcode_scan("http://admin.weilink.me:8000/qianbao/merchant.yaws")},
+      {a, [{href, qb_url:barcode_scan("http://admin.weilink.me:8000/qianbao/bill.yaws")},
 	   {'data-role', "button"}, {'data-mini', "true"}],
        [
 	{img, [{src, "images/credit-cards.png"}]},
@@ -83,7 +83,7 @@ cell_0_a() ->
 cell_0_b() ->
     {'div', [{class, "ui-block-b"}],
      [
-      {a, [{id, "input_merchant_code"}, {'data-role', "button"}, {href, "#"}, {'data-rel', "dialog"}, {'data-mini', "true"}],
+      {a, [{id, "input_merchant_code"}, {'data-role', "button"}, {href, "#"}, {'data-mini', "true"}],
        [
 	{img, [{src, "images/visa.png"}]},
 	{br},

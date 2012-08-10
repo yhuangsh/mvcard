@@ -18,26 +18,30 @@ out_1(SessionId, A) -> out_2(qb_session:get(SessionId), A).
 
 %% Session id must be valid
 out_2(undefined, A) -> {redirect_local, qb_url:login(qb_url:this(A))};
-out_2(Session, A) -> out_3(Session, queryvar(A, "m")).
+out_2(Session, A) -> out_3(Session, queryvar(A, "m"), queryvar(A, "a")).
 
 %% Merchant id "m=" must exist
-out_3(_, undefined) -> {redirect_local, qb_url:error("没有指定商家", qb_url:home())};
-out_3(#qbs{uid=UserId}, {ok, MerchantId}) -> out_4(UserId, qb_merchant:get(MerchantId)).
+out_3(_, undefined, _) -> {redirect_local, qb_url:error("没有指定商家", qb_url:home())};
+out_3(#qbs{uid=UserId}, {ok, MerchantId}, Amount) -> out_4(UserId, qb_merchant:get(MerchantId), Amount).
 
-%% Merchant id must be valid
-out_4(UserId, undefined) -> {redirect_local, qb_url:error("找不到指定的商家", qb_url:home())};
-out_4(UserId, #qbm{id=MerchantId}) -> out_5(qb_trans:new(UserId, MerchantId)).
+%% Merchant id must be valid, amount "a=" is optional
+out_4(UserId, undefined, _) -> {redirect_local, qb_url:error("找不到指定的商家", qb_url:home())};
+out_4(UserId, #qbm{id=MerchantId}, undefined) -> out_5(UserId, MerchantId, 0.00);
+out_4(UserId, #qbm{id=MerchantId}, {ok, Amount}) -> out_5(UserId, MerchantId, catch list_to_float(Amount)).
+
+out_5(UserId, MerchantId, Amount) when is_float(Amount) -> out_6(qb_trans:new(UserId, MerchantId), Amount);
+out_5(_, _, _) -> {redirect_local, qb_url:error("错误的金额", qb_url:home())}.
     
 %% Initiate transaction
-out_5(undefined) -> {redirect_local, qb_url:error("未能启动交易", qb_url:home())};
-out_5(T) ->  {ehtml, page(T)}.
+out_6(undefined, _) -> {redirect_local, qb_url:error("未能启动交易", qb_url:home())};
+out_6(T, Amount) ->  {ehtml, page(T, Amount)}.
     
-page(T) ->
+page(T, Amount) ->
     qb_debug:d(tag(), "start building bill page"),
     {'div', [{id, "bill-page"} ,{'data-role', "page"}],
      [
       page_header(),
-      page_content(T)
+      page_content(T, Amount)
      ]}.
 
 page_header() ->
@@ -48,14 +52,14 @@ page_header() ->
      ]
     }.
 
-page_content(T) ->
+page_content(T, Amount) ->
     {'div', [{'data-role', "content"}],
      [
-      ul_bill_sheet(T),
+      ul_bill_sheet(T, Amount),
       ul_payment_options()
      ]}.
 
-ul_bill_sheet(T) ->
+ul_bill_sheet(T, Amount) ->
     U = qb_user:get(T#qbt.uid),
     {ul, [{'data-role', "listview"}, {'data-inset', "true"}],
      [
@@ -67,7 +71,7 @@ ul_bill_sheet(T) ->
       li_divider("确认商家"),
       li_merchant_info(qb_merchant:get(T#qbt.mid)),
       li_divider("消费金额"),
-      li_billed_amount_input(),
+      li_billed_amount_input(Amount),
       li_divider("使用优惠"),
       li_promo(qb_promo:get(T#qbt.mid, undefined), qb_promo:get(T#qbt.mid, T#qbt.uid)),
       li_divider("使用积分"),
@@ -93,10 +97,11 @@ li_merchant_info(M) ->
       {input, [{type, "hidden"}, {name, "rebate"}, {value, M#qbm.rebate}]}
      ]}.
 
-li_billed_amount_input() -> 
+li_billed_amount_input(Amount) -> 
+    Amt = lists:flatten(io_lib:format("~.2f", [Amount])),
     {li, [], 
      [
-      {input, [{type, "number"}, {name, "amt0"}, {value, "0.00"}]}
+      {input, [{type, "number"}, {name, "amt0"}, {value, Amt}]}
 %      {input, [{type, "hidden"}, {name, "pid"}]},
 %      {input, [{type, "hidden"}, {name, "promo_discnt"}]},
 %      {input, [{type, "hidden"}, {name, "pts_used"}]},
