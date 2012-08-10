@@ -102,11 +102,6 @@ li_billed_amount_input(Amount) ->
     {li, [], 
      [
       {input, [{type, "number"}, {name, "amt0"}, {value, Amt}]}
-%      {input, [{type, "hidden"}, {name, "pid"}]},
-%      {input, [{type, "hidden"}, {name, "promo_discnt"}]},
-%      {input, [{type, "hidden"}, {name, "pts_used"}]},
-%      {input, [{type, "hidden"}, {name, "amt_actual"}]},
-%      {input, [{type, "hidden"}, {name, "pts_earned"}]}
      ]}.
 
 li_promo(undefined, undefined) -> li_promo([], []);
